@@ -1,0 +1,15 @@
+name = "curlys-order-form-worker"
+main = "src/index.js"
+compatibility_date = "2024-10-29"
+
+[vars]
+SHOPIFY_STORE = "curlys-sports-supplements.myshopify.com"
+FROM_EMAIL = "dwayne@curlys.ca"
+STAFF_EMAIL = "dwayne@curlys.ca"
+STAFF_NOTIFY_ALL = "true"
+AUTO_INVOICE_ON_STOCK = "true"
+FLOW_SHARED_SECRET = "BrownsCornerCanteen"
+
+# Secrets (already set in Cloudflare, will be preserved):
+#   SHOPIFY_ADMIN_TOKEN - Shopify Admin API access token (SECRET)
+#   RESEND_API_KEY - Resend.com API key for emails (SECRET)

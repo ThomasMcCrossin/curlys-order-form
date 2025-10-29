@@ -1,0 +1,14 @@
+{
+  "name": "curlys-order-form-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for Curlys order form",
+  "main": "src/index.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail"
+  },
+  "keywords": ["cloudflare", "worker", "shopify"],
+  "author": "ThomasMcCrossin",
+  "license": "ISC"
+}
