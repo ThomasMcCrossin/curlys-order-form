@@ -652,9 +652,9 @@
       try {
         const response = await fetch(`${WORKER_URL}/api/customers/search?q=${encodeURIComponent(query)}`);
         if (!response.ok) throw new Error('Failed to search customers');
-        
-        const customers = await response.json();
-        displayCustomerResults(customers);
+
+        const data = await response.json();
+        displayCustomerResults(data.customers);
       } catch (error) {
         results.innerHTML = '<div class="autocomplete-empty">Error loading customers</div>';
       }
@@ -735,9 +735,9 @@
       try {
         const response = await fetch(`${WORKER_URL}/api/products/search?q=${encodeURIComponent(query)}`);
         if (!response.ok) throw new Error('Failed to search products');
-        
-        const products = await response.json();
-        displayProductResults(products);
+
+        const data = await response.json();
+        displayProductResults(data.products);
       } catch (error) {
         results.innerHTML = '<div class="autocomplete-empty">Error loading products</div>';
       }
