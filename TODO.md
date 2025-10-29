@@ -1,5 +1,58 @@
 # TODO - Future Enhancements
 
+## Email Improvements (HIGH PRIORITY)
+
+### Back-in-Stock Email Flow
+- [ ] Remove duplicate plain text email notification
+- [ ] Only send the Shopify draft order invoice (it's better formatted and allows payment)
+- [ ] Update AUTO_INVOICE_ON_STOCK behavior to not send plain text email alongside invoice
+
+### Order Request Confirmation Email
+- [ ] Make email look nicer/more branded
+- [ ] Reference the specific item(s) they requested in the email body
+- [ ] Show product names, quantities in confirmation
+
+### Email Branding
+- [ ] Change FROM email from `dwayne@curlys.ca` to `tom@curlys.ca`
+- [ ] Add Curlys logo to email header
+- [ ] Consider deliverability impact of images/branding
+- [ ] Update FROM_EMAIL variable in Cloudflare Worker settings
+
+### Technical Implementation
+- Located in: `/worker/src/index.js`
+- Email sending functions around lines 231-333
+- sendResend() function around line 480+
+
+---
+
+## Product Search Improvements (HIGH PRIORITY)
+
+### Display Changes
+- [ ] Hide "Default Title" when variant title is "Default Title"
+- [ ] Add **vendor name** to product subtitle (currently shows variant title)
+- [ ] Format: `[Vendor] • $price • SKU: xxx • Barcode: xxx`
+
+### Variant Grouping
+- [ ] Collapse variants under their parent product
+- [ ] Show parent product title with expandable variants
+- [ ] Limit to **10 products** (not 10 variants)
+- [ ] This allows browsing more products without variant clutter
+
+### Search Debouncing
+- [ ] Increase debounce delay to reduce API calls while typing
+- [ ] Current: 300ms delay
+- [ ] Suggested: 500-800ms delay
+- [ ] Note: At 10-15 uses/week, API cost is negligible
+- [ ] But better UX to wait for user to finish typing
+
+### Technical Implementation
+- Frontend: `/index.html` around lines 746-776 (displayProductResults)
+- Backend: `/worker/src/index.js` lines 43-150 (product search queries)
+- Need to add vendor field to GraphQL queries
+- Need to modify display logic to group by product
+
+---
+
 ## Customer Phone Number Handling
 
 ### For Existing Customers
