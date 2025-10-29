@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Order Form</title>
+  <style>
+    /* Design System */
+    :root {
+      --color-primary: #0052CC;
+      --color-primary-hover: #0747A6;
+      --color-success: #00875A;
+      --color-error: #DE350B;
+      --color-background: #F4F5F7;
+      --color-surface: #FFFFFF;
+      --color-text: #172B4D;
+      --color-text-secondary: #6B778C;
+      --color-border: #DFE1E6;
+      --radius-base: 8px;
+      --radius-sm: 4px;
+      --space-xs: 4px;
+      --space-sm: 8px;
+      --space-md: 16px;
+      --space-lg: 24px;
+      --space-xl: 32px;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+      --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      background-color: var(--color-background);
+      color: var(--color-text);
+      line-height: 1.5;
+      padding: var(--space-md);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding-bottom: 100px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: var(--space-lg);
+      color: var(--color-text);
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: var(--space-md);
+      color: var(--color-text);
+    }
+
+    .card {
+      background: var(--color-surface);
+      border-radius: var(--radius-base);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .form-group {
+      margin-bottom: var(--space-md);
+    }
+
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: var(--space-sm);
+      color: var(--color-text);
+      font-size: 14px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="number"],
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+
+    input:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    /* Autocomplete */
+    .autocomplete-wrapper {
+      position: relative;
+    }
+
+    .autocomplete-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--color-surface);
+      border: 2px solid var(--color-border);
+      border-top: none;
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+      max-height: 300px;
+      overflow-y: auto;
+      box-shadow: var(--shadow-md);
+      z-index: 1000;
+      display: none;
+    }
+
+    .autocomplete-results.show {
+      display: block;
+    }
+
+    .autocomplete-item {
+      padding: 12px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--color-border);
+      transition: background-color 0.2s;
+    }
+
+    .autocomplete-item:last-child {
+      border-bottom: none;
+    }
+
+    .autocomplete-item:hover,
+    .autocomplete-item.active {
+      background-color: #F4F5F7;
+    }
+
+    .autocomplete-item-title {
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 2px;
+    }
+
+    .autocomplete-item-subtitle {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+    }
+
+    .autocomplete-loading,
+    .autocomplete-empty {
+      padding: 12px;
+      text-align: center;
+      color: var(--color-text-secondary);
+      font-size: 13px;
+    }
+
+    /* Selected Customer Card */
+    .selected-customer {
+      background: #E3FCEF;
+      border: 2px solid var(--color-success);
+      border-radius: var(--radius-base);
+      padding: var(--space-md);
+      margin-bottom: var(--space-md);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .selected-customer-info h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .selected-customer-info p {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      margin-bottom: 2px;
+    }
+
+    /* Manual Entry Toggle */
+    .manual-entry-toggle {
+      margin-bottom: var(--space-md);
+    }
+
+    .manual-fields {
+      display: none;
+      margin-top: var(--space-md);
+    }
+
+    .manual-fields.show {
+      display: block;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-md);
+    }
+
+    /* Line Items */
+    .line-items {
+      margin-top: var(--space-md);
+    }
+
+    .line-item {
+      background: #F4F5F7;
+      border-radius: var(--radius-sm);
+      padding: var(--space-md);
+      margin-bottom: var(--space-sm);
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+    }
+
+    .line-item-info {
+      flex: 1;
+    }
+
+    .line-item-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .line-item-subtitle {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+    }
+
+    .line-item-quantity {
+      width: 80px;
+    }
+
+    .line-item-price {
+      font-weight: 600;
+      width: 100px;
+      text-align: right;
+    }
+
+    .line-item-remove {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: var(--color-error);
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: background-color 0.2s;
+      font-size: 18px;
+    }
+
+    .line-item-remove:hover {
+      background-color: #FFEBE6;
+    }
+
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-md);
+      margin-top: var(--space-md);
+      background: #DEEBFF;
+      border-radius: var(--radius-sm);
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      min-height: 44px;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      background: var(--color-primary);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--color-primary-hover);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--color-primary);
+      border: 2px solid var(--color-border);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #F4F5F7;
+    }
+
+    .btn-link {
+      background: transparent;
+      color: var(--color-primary);
+      border: none;
+      padding: 4px 8px;
+    }
+
+    .btn-link:hover {
+      text-decoration: underline;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-full {
+      width: 100%;
+    }
+
+    .btn-large {
+      padding: 14px 24px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    /* Messages */
+    .message {
+      padding: var(--space-md);
+      border-radius: var(--radius-sm);
+      margin-bottom: var(--space-md);
+      display: none;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .message-success {
+      background: #E3FCEF;
+      border: 2px solid var(--color-success);
+      color: #006644;
+    }
+
+    .message-error {
+      background: #FFEBE6;
+      border: 2px solid var(--color-error);
+      color: #BF2600;
+    }
+
+    .message h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: var(--space-sm);
+    }
+
+    .message p {
+      margin-bottom: var(--space-sm);
+    }
+
+    .message a {
+      color: inherit;
+      text-decoration: underline;
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Custom Item Toggle */
+    .custom-item-section {
+      display: none;
+      margin-top: var(--space-md);
+      padding-top: var(--space-md);
+      border-top: 1px solid var(--color-border);
+    }
+
+    .custom-item-section.show {
+      display: block;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: var(--space-xl);
+      color: var(--color-text-secondary);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      body {
+        padding: var(--space-sm);
+      }
+
+      .container {
+        padding-bottom: 120px;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .line-item {
+        flex-wrap: wrap;
+      }
+
+      .line-item-info {
+        width: 100%;
+        margin-bottom: var(--space-sm);
+      }
+
+      .line-item-quantity,
+      .line-item-price {
+        flex: 1;
+      }
+    }
+
+    /* Sticky Submit Button on Mobile */
+    @media (max-width: 768px) {
+      .submit-section {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--color-surface);
+        padding: var(--space-md);
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Customer Order Form</h1>
+
+    <!-- Success Message -->
+    <div id="successMessage" class="message message-success">
+      <h3>✓ Draft Order Created</h3>
+      <p id="successText"></p>
+      <button class="btn btn-secondary" onclick="resetForm()">Create Another Order</button>
+    </div>
+
+    <!-- Error Message -->
+    <div id="errorMessage" class="message message-error">
+      <h3>⚠ Error</h3>
+      <p id="errorText"></p>
+    </div>
+
+    <!-- Customer Section -->
+    <div class="card">
+      <h2>1. Customer</h2>
+
+      <!-- Selected Customer Display -->
+      <div id="selectedCustomerCard" class="selected-customer" style="display: none;">
+        <div class="selected-customer-info">
+          <h3 id="selectedCustomerName"></h3>
+          <p id="selectedCustomerEmail"></p>
+          <p id="selectedCustomerPhone"></p>
+        </div>
+        <button class="btn btn-link" onclick="clearCustomer()">Change</button>
+      </div>
+
+      <!-- Customer Search -->
+      <div id="customerSearchSection">
+        <div class="form-group">
+          <label for="customerSearch">Search Customer</label>
+          <div class="autocomplete-wrapper">
+            <input 
+              type="text" 
+              id="customerSearch" 
+              placeholder="Type name, email, or phone..."
+              autocomplete="off"
+            >
+            <div id="customerResults" class="autocomplete-results"></div>
+          </div>
+        </div>
+
+        <div class="manual-entry-toggle">
+          <button class="btn btn-link" onclick="toggleManualEntry()">Or enter customer details manually</button>
+        </div>
+
+        <div id="manualCustomerFields" class="manual-fields">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="firstName">First Name</label>
+              <input type="text" id="firstName" placeholder="John">
+            </div>
+            <div class="form-group">
+              <label for="lastName">Last Name</label>
+              <input type="text" id="lastName" placeholder="Doe">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" placeholder="[email protected]">
+            </div>
+            <div class="form-group">
+              <label for="phone">Phone</label>
+              <input type="tel" id="phone" placeholder="+1234567890">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Products Section -->
+    <div class="card">
+      <h2>2. Products</h2>
+
+      <div class="form-group">
+        <label for="productSearch">Search Products</label>
+        <div class="autocomplete-wrapper">
+          <input 
+            type="text" 
+            id="productSearch" 
+            placeholder="Search products by name or barcode..."
+            autocomplete="off"
+          >
+          <div id="productResults" class="autocomplete-results"></div>
+        </div>
+      </div>
+
+      <div class="line-items">
+        <div id="lineItemsList"></div>
+        <div id="emptyLineItems" class="empty-state">
+          <p>No items added yet. Search for products above or add a custom item.</p>
+        </div>
+        <div id="totalSection" style="display: none;">
+          <div class="total-row">
+            <span>Total:</span>
+            <span id="totalAmount">$0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-link" onclick="toggleCustomItem()">+ Add Custom Item</button>
+
+      <div id="customItemSection" class="custom-item-section">
+        <h3 style="font-size: 16px; margin-bottom: var(--space-md);">Custom Item</h3>
+        <div class="form-group">
+          <label for="customTitle">Title</label>
+          <input type="text" id="customTitle" placeholder="Item description">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="customPrice">Price</label>
+            <input type="text" id="customPrice" placeholder="29.99">
+          </div>
+          <div class="form-group">
+            <label for="customQuantity">Quantity</label>
+            <input type="number" id="customQuantity" value="1" min="1">
+          </div>
+        </div>
+        <button class="btn btn-secondary" onclick="addCustomItem()">Add Custom Item</button>
+        <button class="btn btn-link" onclick="toggleCustomItem()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Notes Section -->
+    <div class="card">
+      <h2>3. Notes / Special Instructions</h2>
+      <div class="form-group">
+        <textarea id="orderNotes" placeholder="Add any special instructions or notes..."></textarea>
+      </div>
+    </div>
+
+    <!-- Submit Section -->
+    <div class="submit-section">
+      <button id="submitBtn" class="btn btn-primary btn-large btn-full" onclick="submitOrder()">
+        Create Draft Order
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Configuration - UPDATE THIS with your Cloudflare Worker URL
+    const WORKER_URL = 'https://your-worker.your-account.workers.dev';
+
+    // State
+    let selectedCustomer = null;
+    let lineItems = [];
+    let customerSearchTimeout = null;
+    let productSearchTimeout = null;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      setupCustomerSearch();
+      setupProductSearch();
+      setupKeyboardNav();
+    });
+
+    // Customer Search
+    function setupCustomerSearch() {
+      const input = document.getElementById('customerSearch');
+      const results = document.getElementById('customerResults');
+
+      input.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        
+        if (query.length < 2) {
+          results.classList.remove('show');
+          return;
+        }
+
+        clearTimeout(customerSearchTimeout);
+        customerSearchTimeout = setTimeout(() => {
+          searchCustomers(query);
+        }, 300);
+      });
+
+      // Click outside to close
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.autocomplete-wrapper')) {
+          results.classList.remove('show');
+        }
+      });
+    }
+
+    async function searchCustomers(query) {
+      const results = document.getElementById('customerResults');
+      results.innerHTML = '<div class="autocomplete-loading">Searching...</div>';
+      results.classList.add('show');
+
+      try {
+        const response = await fetch(`${WORKER_URL}/api/customers/search?q=${encodeURIComponent(query)}`);
+        if (!response.ok) throw new Error('Failed to search customers');
+        
+        const customers = await response.json();
+        displayCustomerResults(customers);
+      } catch (error) {
+        results.innerHTML = '<div class="autocomplete-empty">Error loading customers</div>';
+      }
+    }
+
+    function displayCustomerResults(customers) {
+      const results = document.getElementById('customerResults');
+      
+      if (!customers || customers.length === 0) {
+        results.innerHTML = '<div class="autocomplete-empty">No customers found</div>';
+        return;
+      }
+
+      results.innerHTML = customers.slice(0, 10).map(customer => `
+        <div class="autocomplete-item" onclick='selectCustomer(${JSON.stringify(customer)})'>
+          <div class="autocomplete-item-title">${escapeHtml(customer.firstName)} ${escapeHtml(customer.lastName)}</div>
+          <div class="autocomplete-item-subtitle">
+            ${customer.email ? escapeHtml(customer.email) : ''}
+            ${customer.email && customer.phone ? ' • ' : ''}
+            ${customer.phone ? escapeHtml(customer.phone) : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function selectCustomer(customer) {
+      selectedCustomer = customer;
+      
+      // Show selected customer card
+      document.getElementById('selectedCustomerCard').style.display = 'flex';
+      document.getElementById('selectedCustomerName').textContent = `${customer.firstName} ${customer.lastName}`;
+      document.getElementById('selectedCustomerEmail').textContent = customer.email || '';
+      document.getElementById('selectedCustomerPhone').textContent = customer.phone || '';
+      
+      // Hide search section
+      document.getElementById('customerSearchSection').style.display = 'none';
+      document.getElementById('customerSearch').value = '';
+      document.getElementById('customerResults').classList.remove('show');
+    }
+
+    function clearCustomer() {
+      selectedCustomer = null;
+      document.getElementById('selectedCustomerCard').style.display = 'none';
+      document.getElementById('customerSearchSection').style.display = 'block';
+      document.getElementById('customerSearch').focus();
+    }
+
+    function toggleManualEntry() {
+      const fields = document.getElementById('manualCustomerFields');
+      fields.classList.toggle('show');
+    }
+
+    // Product Search
+    function setupProductSearch() {
+      const input = document.getElementById('productSearch');
+      const results = document.getElementById('productResults');
+
+      input.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        
+        if (query.length < 2) {
+          results.classList.remove('show');
+          return;
+        }
+
+        clearTimeout(productSearchTimeout);
+        productSearchTimeout = setTimeout(() => {
+          searchProducts(query);
+        }, 300);
+      });
+    }
+
+    async function searchProducts(query) {
+      const results = document.getElementById('productResults');
+      results.innerHTML = '<div class="autocomplete-loading">Searching...</div>';
+      results.classList.add('show');
+
+      try {
+        const response = await fetch(`${WORKER_URL}/api/products/search?q=${encodeURIComponent(query)}`);
+        if (!response.ok) throw new Error('Failed to search products');
+        
+        const products = await response.json();
+        displayProductResults(products);
+      } catch (error) {
+        results.innerHTML = '<div class="autocomplete-empty">Error loading products</div>';
+      }
+    }
+
+    function displayProductResults(products) {
+      const results = document.getElementById('productResults');
+      
+      if (!products || products.length === 0) {
+        results.innerHTML = '<div class="autocomplete-empty">No products found</div>';
+        return;
+      }
+
+      results.innerHTML = products.slice(0, 10).map(product => {
+        const subtitle = [];
+        if (product.variantTitle && product.variantTitle !== 'Default Title') {
+          subtitle.push(product.variantTitle);
+        }
+        if (product.price) {
+          subtitle.push(`$${parseFloat(product.price).toFixed(2)}`);
+        }
+        if (product.sku) {
+          subtitle.push(`SKU: ${product.sku}`);
+        }
+        if (product.barcode) {
+          subtitle.push(`Barcode: ${product.barcode}`);
+        }
+
+        return `
+          <div class="autocomplete-item" onclick='selectProduct(${JSON.stringify(product)})'>
+            <div class="autocomplete-item-title">${escapeHtml(product.productTitle)}</div>
+            <div class="autocomplete-item-subtitle">${escapeHtml(subtitle.join(' • '))}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectProduct(product) {
+      addLineItem({
+        variantId: product.variantId,
+        title: product.productTitle,
+        variantTitle: product.variantTitle !== 'Default Title' ? product.variantTitle : '',
+        price: parseFloat(product.price),
+        quantity: 1,
+        type: 'product'
+      });
+      
+      document.getElementById('productSearch').value = '';
+      document.getElementById('productResults').classList.remove('show');
+    }
+
+    // Line Items
+    function addLineItem(item) {
+      lineItems.push(item);
+      renderLineItems();
+    }
+
+    function removeLineItem(index) {
+      lineItems.splice(index, 1);
+      renderLineItems();
+    }
+
+    function updateQuantity(index, quantity) {
+      if (quantity > 0) {
+        lineItems[index].quantity = quantity;
+        renderLineItems();
+      }
+    }
+
+    function renderLineItems() {
+      const list = document.getElementById('lineItemsList');
+      const empty = document.getElementById('emptyLineItems');
+      const totalSection = document.getElementById('totalSection');
+      
+      if (lineItems.length === 0) {
+        list.innerHTML = '';
+        empty.style.display = 'block';
+        totalSection.style.display = 'none';
+        return;
+      }
+
+      empty.style.display = 'none';
+      totalSection.style.display = 'block';
+
+      list.innerHTML = lineItems.map((item, index) => {
+        const itemTotal = item.price * item.quantity;
+        return `
+          <div class="line-item">
+            <div class="line-item-info">
+              <div class="line-item-title">${escapeHtml(item.title)}</div>
+              ${item.variantTitle ? `<div class="line-item-subtitle">${escapeHtml(item.variantTitle)}</div>` : ''}
+              ${item.type === 'custom' ? '<div class="line-item-subtitle">Custom Item</div>' : ''}
+            </div>
+            <input 
+              type="number" 
+              class="line-item-quantity" 
+              value="${item.quantity}" 
+              min="1"
+              onchange="updateQuantity(${index}, parseInt(this.value))"
+            >
+            <div class="line-item-price">$${itemTotal.toFixed(2)}</div>
+            <button class="line-item-remove" onclick="removeLineItem(${index})" title="Remove">
+              ×
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      // Update total
+      const total = lineItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      document.getElementById('totalAmount').textContent = `$${total.toFixed(2)}`;
+    }
+
+    // Custom Items
+    function toggleCustomItem() {
+      const section = document.getElementById('customItemSection');
+      section.classList.toggle('show');
+      if (section.classList.contains('show')) {
+        document.getElementById('customTitle').focus();
+      } else {
+        // Clear fields
+        document.getElementById('customTitle').value = '';
+        document.getElementById('customPrice').value = '';
+        document.getElementById('customQuantity').value = '1';
+      }
+    }
+
+    function addCustomItem() {
+      const title = document.getElementById('customTitle').value.trim();
+      const priceStr = document.getElementById('customPrice').value.trim();
+      const quantity = parseInt(document.getElementById('customQuantity').value) || 1;
+
+      if (!title) {
+        showError('Please enter a title for the custom item');
+        return;
+      }
+
+      const price = parseFloat(priceStr);
+      if (isNaN(price) || price < 0) {
+        showError('Please enter a valid price');
+        return;
+      }
+
+      addLineItem({
+        title,
+        price,
+        quantity,
+        type: 'custom'
+      });
+
+      toggleCustomItem();
+    }
+
+    // Form Submission
+    async function submitOrder() {
+      hideMessages();
+
+      // Validation
+      const customer = getCustomerData();
+      if (!customer.email && !customer.phone) {
+        showError('Please select a customer or provide at least an email or phone number');
+        return;
+      }
+
+      if (lineItems.length === 0) {
+        showError('Please add at least one item to the order');
+        return;
+      }
+
+      // Build request
+      const items = lineItems.map(item => {
+        if (item.type === 'custom') {
+          return {
+            customTitle: item.title,
+            customPrice: item.price.toFixed(2),
+            quantity: item.quantity
+          };
+        } else {
+          return {
+            variantId: item.variantId,
+            quantity: item.quantity
+          };
+        }
+      });
+
+      const notes = document.getElementById('orderNotes').value.trim();
+
+      const payload = {
+        customer,
+        items,
+        notes: notes || undefined
+      };
+
+      // Submit
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Creating Draft Order...';
+
+      try {
+        const response = await fetch(`${WORKER_URL}/order-request`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.ok) {
+          throw new Error(result.error || 'Failed to create draft order');
+        }
+
+        showSuccess(result);
+      } catch (error) {
+        showError(error.message);
+        btn.disabled = false;
+        btn.innerHTML = 'Create Draft Order';
+      }
+    }
+
+    function getCustomerData() {
+      if (selectedCustomer) {
+        return {
+          firstName: selectedCustomer.firstName,
+          lastName: selectedCustomer.lastName,
+          email: selectedCustomer.email,
+          phone: selectedCustomer.phone
+        };
+      }
+
+      return {
+        firstName: document.getElementById('firstName').value.trim(),
+        lastName: document.getElementById('lastName').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        phone: document.getElementById('phone').value.trim()
+      };
+    }
+
+    // Messages
+    function showSuccess(result) {
+      const msg = document.getElementById('successMessage');
+      const text = document.getElementById('successText');
+      
+      let message = `Draft order <strong>${escapeHtml(result.draftOrderName || result.draftOrderId)}</strong> has been created successfully.`;
+      if (result.adminUrl) {
+        message += ` <a href="${escapeHtml(result.adminUrl)}" target="_blank">View in Shopify Admin</a>`;
+      }
+      
+      text.innerHTML = message;
+      msg.classList.add('show');
+      
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Hide form
+      document.querySelectorAll('.card').forEach(card => card.style.display = 'none');
+      document.querySelector('.submit-section').style.display = 'none';
+    }
+
+    function showError(message) {
+      const msg = document.getElementById('errorMessage');
+      const text = document.getElementById('errorText');
+      text.textContent = message;
+      msg.classList.add('show');
+      
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function hideMessages() {
+      document.getElementById('successMessage').classList.remove('show');
+      document.getElementById('errorMessage').classList.remove('show');
+    }
+
+    function resetForm() {
+      // Clear state
+      selectedCustomer = null;
+      lineItems = [];
+      
+      // Reset UI
+      document.getElementById('customerSearch').value = '';
+      document.getElementById('firstName').value = '';
+      document.getElementById('lastName').value = '';
+      document.getElementById('email').value = '';
+      document.getElementById('phone').value = '';
+      document.getElementById('productSearch').value = '';
+      document.getElementById('orderNotes').value = '';
+      document.getElementById('customTitle').value = '';
+      document.getElementById('customPrice').value = '';
+      document.getElementById('customQuantity').value = '1';
+      
+      document.getElementById('selectedCustomerCard').style.display = 'none';
+      document.getElementById('customerSearchSection').style.display = 'block';
+      document.getElementById('manualCustomerFields').classList.remove('show');
+      document.getElementById('customItemSection').classList.remove('show');
+      
+      renderLineItems();
+      hideMessages();
+      
+      // Show form
+      document.querySelectorAll('.card').forEach(card => card.style.display = 'block');
+      document.querySelector('.submit-section').style.display = 'block';
+      
+      // Reset submit button
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = false;
+      btn.innerHTML = 'Create Draft Order';
+      
+      // Focus first field
+      document.getElementById('customerSearch').focus();
+    }
+
+    // Keyboard Navigation
+    function setupKeyboardNav() {
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          document.getElementById('customerResults').classList.remove('show');
+          document.getElementById('productResults').classList.remove('show');
+        }
+      });
+    }
+
+    // Utilities
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
