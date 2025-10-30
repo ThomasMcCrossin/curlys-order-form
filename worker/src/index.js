@@ -336,6 +336,103 @@ export default {
       }
     }
 
+    // === DASHBOARD API ===
+    if (url.pathname === "/api/dashboard/orders" && request.method === "GET") {
+      try {
+        const drafts = await listOpenRequestDrafts(env);
+        const orders = drafts
+          .filter(d => (d.tags || "").includes("order-request"))
+          .filter(d => (d.tags || "").includes("pending"))
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .map(draft => ({
+            id: draft.id,
+            name: draft.name || `#${draft.id}`,
+            customerName: draft.customer ?
+              `${draft.customer.first_name || ''} ${draft.customer.last_name || ''}`.trim() :
+              'Guest',
+            customerEmail: draft.customer?.email || draft.note_attributes?.find(na => na.name === 'Customer Email')?.value,
+            customerPhone: draft.customer?.phone || draft.note_attributes?.find(na => na.name === 'Customer Phone')?.value,
+            createdAt: draft.created_at,
+            status: 'pending',
+            items: (draft.line_items || []).map(li => ({
+              title: li.title,
+              variant: li.variant_title !== 'Default Title' ? li.variant_title : null,
+              quantity: li.quantity,
+              isCustom: !li.variant_id // Custom items don't have variant_id
+            }))
+          }));
+
+        return json({ orders }, 200);
+      } catch (e) {
+        console.error("Dashboard orders error:", e);
+        return json({ ok: false, error: e.message }, 500);
+      }
+    }
+
+    if (url.pathname.match(/^\/api\/dashboard\/orders\/(\d+)\/ready$/) && request.method === "POST") {
+      try {
+        const match = url.pathname.match(/^\/api\/dashboard\/orders\/(\d+)\/ready$/);
+        const draftId = match[1];
+
+        // Update draft to remove 'pending' tag
+        const draft = await shopifyRest(env, `/draft_orders/${draftId}.json`, "GET");
+        const currentTags = draft.draft_order.tags || "";
+        const newTags = currentTags.replace(/,?pending/g, '').replace(/^,|,$/g, '') + ',ready';
+
+        await shopifyRest(env, `/draft_orders/${draftId}.json`, "PUT", {
+          draft_order: {
+            id: Number(draftId),
+            tags: newTags
+          }
+        });
+
+        return json({ ok: true }, 200);
+      } catch (e) {
+        console.error("Mark ready error:", e);
+        return json({ ok: false, error: e.message }, 500);
+      }
+    }
+
+    if (url.pathname.match(/^\/api\/dashboard\/orders\/(\d+)\/email$/) && request.method === "POST") {
+      try {
+        const match = url.pathname.match(/^\/api\/dashboard\/orders\/(\d+)\/email$/);
+        const draftId = match[1];
+        const body = await request.json();
+        const customMessage = body.message;
+
+        const draft = await shopifyRest(env, `/draft_orders/${draftId}.json`, "GET");
+        const draftData = draft.draft_order;
+        const email = draftData.customer?.email;
+
+        if (!email) {
+          return json({ ok: false, error: 'No email on file' }, 400);
+        }
+
+        const message = customMessage || 'Your items have arrived and are ready for pickup!';
+
+        await sendResend(env, {
+          from: env.FROM_EMAIL,
+          to: email,
+          reply_to: env.STAFF_EMAIL,
+          subject: `Your order is ready - ${draftData.name}`,
+          html: `
+            <h2 style="color: #333;">Your Items Have Arrived!</h2>
+            <p>${message}</p>
+            <p><strong>Reference Number:</strong> ${draftData.name}</p>
+            <p>You can come pick them up at your convenience or we can send you a payment link.</p>
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">
+              Questions? Reply to this email or call us at the store.
+            </p>
+          `
+        });
+
+        return json({ ok: true }, 200);
+      } catch (e) {
+        console.error("Email customer error:", e);
+        return json({ ok: false, error: e.message }, 500);
+      }
+    }
+
     // === SHOPIFY FLOW: Back in stock (unchanged) ===
     if (url.pathname === "/flow/back-in-stock" && request.method === "POST") {
       if (request.headers.get("x-flow-secret") !== env.FLOW_SHARED_SECRET) {
