@@ -264,11 +264,18 @@ export default {
         const notifyCustomer = body.notifyCustomer !== false;
 
         if (env.RESEND_API_KEY && env.FROM_EMAIL && customerEmail && notifyCustomer) {
-          // Build item list for customer email
+          // Build item list for customer email with variant details
           const itemList = (draft?.line_items || []).map(li => {
             const title = li.title || li.name || 'Product';
+            const variant = li.variant_title || li.variantTitle;
             const qty = li.quantity || 1;
-            return `<li>${title} (Qty: ${qty})</li>`;
+
+            // Show variant if it exists and isn't "Default Title"
+            if (variant && variant !== 'Default Title') {
+              return `<li><strong>${title}</strong> - ${variant} (Qty: ${qty})</li>`;
+            } else {
+              return `<li><strong>${title}</strong> (Qty: ${qty})</li>`;
+            }
           }).join('');
 
           await sendResend(env, {
@@ -278,7 +285,7 @@ export default {
             subject: "We received your request - Curly's Sports Supplements",
             html: `
               <h2 style="color: #333;">Order Request Received</h2>
-              <p>Thanks! Your request has been received and is in our queue.</p>
+              <p>Thanks! Your request has been received and we'll get it ordered in for you.</p>
 
               <p><strong>Reference Number:</strong> ${draft?.name || draft?.id}</p>
 
@@ -287,7 +294,7 @@ export default {
                 ${itemList}
               </ul>
 
-              <p>We'll email you again when your items are ready.</p>
+              <p>We'll email you again when your items are in stock.</p>
               <p style="color: #666; font-size: 14px; margin-top: 20px;">
                 Questions? Reply to this email or call us at the store.
               </p>
