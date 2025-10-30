@@ -716,6 +716,7 @@
     let lineItems = [];
     let customerSearchTimeout = null;
     let productSearchTimeout = null;
+    let currentProductResults = []; // Store current search results
 
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
@@ -878,6 +879,9 @@
         return;
       }
 
+      // Store products globally for variant selection
+      currentProductResults = products;
+
       results.innerHTML = products.map((item, index) => {
         // Check if this is a grouped product or individual variant
         if (item.type === 'product') {
@@ -893,23 +897,17 @@
             statusBadge = `<span style="display: inline-block; font-size: 11px; padding: 2px 6px; margin-left: 6px; background: #e0e0e0; color: #666; border-radius: 3px; font-weight: 500;">${statusLabel}</span>`;
           }
 
-          const variantsHtml = item.variants.map(variant => {
+          const variantsHtml = item.variants.map((variant, vIdx) => {
             const varSub = [];
             if (variant.price) varSub.push(`$${parseFloat(variant.price).toFixed(2)}`);
             if (variant.sku) varSub.push(`SKU: ${variant.sku}`);
             if (variant.barcode) varSub.push(`Barcode: ${variant.barcode}`);
 
-            const variantData = {
-              variantId: variant.variantId,
-              productTitle: item.productTitle,
-              variantTitle: variant.variantTitle,
-              price: variant.price,
-              sku: variant.sku,
-              barcode: variant.barcode
-            };
-
             return `
-              <div class="variant-item" onclick='selectVariant(${JSON.stringify(variantData)})'>
+              <div class="variant-item"
+                   data-product-index="${index}"
+                   data-variant-index="${vIdx}"
+                   onclick="event.stopPropagation(); selectVariantByIndex(${index}, ${vIdx})">
                 <div class="variant-title">${escapeHtml(variant.variantTitle === 'Default Title' ? 'Standard' : variant.variantTitle)}</div>
                 <div class="variant-subtitle">${escapeHtml(varSub.join(' • '))}</div>
               </div>
@@ -918,7 +916,7 @@
 
           return `
             <div class="product-group">
-              <div class="product-header" onclick="toggleVariants(${index})">
+              <div class="product-header" onclick="toggleVariants(event, ${index})">
                 <div>
                   <div class="autocomplete-item-title">${escapeHtml(item.productTitle)}${statusBadge}</div>
                   <div class="autocomplete-item-subtitle">${escapeHtml(subtitle.join(' • '))}</div>
@@ -957,12 +955,36 @@
       }).join('');
     }
 
-    function toggleVariants(index) {
+    function toggleVariants(event, index) {
+      if (event) event.stopPropagation();
+
       const variantList = document.getElementById(`variant-list-${index}`);
       const expandIcon = document.getElementById(`expand-icon-${index}`);
 
-      variantList.classList.toggle('show');
-      expandIcon.classList.toggle('expanded');
+      if (variantList && expandIcon) {
+        variantList.classList.toggle('show');
+        expandIcon.classList.toggle('expanded');
+      }
+    }
+
+    function selectVariantByIndex(productIndex, variantIndex) {
+      const product = currentProductResults[productIndex];
+      if (!product || !product.variants) return;
+
+      const variant = product.variants[variantIndex];
+      if (!variant) return;
+
+      addLineItem({
+        variantId: variant.variantId,
+        title: product.productTitle,
+        variantTitle: variant.variantTitle !== 'Default Title' ? variant.variantTitle : '',
+        price: parseFloat(variant.price),
+        quantity: 1,
+        type: 'product'
+      });
+
+      document.getElementById('productSearch').value = '';
+      document.getElementById('productResults').classList.remove('show');
     }
 
     function selectVariant(variant) {
