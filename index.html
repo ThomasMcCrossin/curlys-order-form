@@ -614,8 +614,8 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="email">Email</label>
-              <input type="email" id="email" placeholder="[email protected]">
+              <label for="email">Email *</label>
+              <input type="email" id="email" placeholder="[email protected]" required>
             </div>
             <div class="form-group">
               <label for="phone">Phone *</label>
@@ -1160,8 +1160,19 @@
 
       // Validation
       const customer = getCustomerData();
+
+      // For new customers (manual entry), require email for notifications to work
+      if (!selectedCustomer) {
+        if (!customer.email) {
+          showError('Email is required for new customers (needed for order notifications)');
+          document.getElementById('email').focus();
+          return;
+        }
+      }
+
+      // For existing customers, ensure at least email or phone
       if (!customer.email && !customer.phone) {
-        showError('Please select a customer or provide at least an email or phone number');
+        showError('Please provide at least an email or phone number');
         return;
       }
 
