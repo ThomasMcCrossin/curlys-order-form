@@ -158,6 +158,75 @@
       color: var(--color-text-secondary);
     }
 
+    /* Product with variants */
+    .product-group {
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .product-group:last-child {
+      border-bottom: none;
+    }
+
+    .product-header {
+      padding: 12px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .product-header:hover {
+      background-color: #F4F5F7;
+    }
+
+    .product-expand-icon {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      transition: transform 0.2s;
+    }
+
+    .product-expand-icon.expanded {
+      transform: rotate(90deg);
+    }
+
+    .variant-list {
+      display: none;
+      background-color: #F9FAFB;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .variant-list.show {
+      display: block;
+    }
+
+    .variant-item {
+      padding: 10px 12px 10px 30px;
+      cursor: pointer;
+      border-bottom: 1px solid #E5E7EB;
+      transition: background-color 0.2s;
+    }
+
+    .variant-item:last-child {
+      border-bottom: none;
+    }
+
+    .variant-item:hover {
+      background-color: #F4F5F7;
+    }
+
+    .variant-title {
+      font-weight: 500;
+      color: var(--color-text);
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    .variant-subtitle {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+
     .autocomplete-loading,
     .autocomplete-empty {
       padding: 12px;
@@ -487,6 +556,32 @@
         <button class="btn btn-link" onclick="clearCustomer()">Change</button>
       </div>
 
+      <!-- Phone Number Input (shown when customer selected) -->
+      <div id="phoneNumberSection" class="form-group" style="display: none; margin-top: 1rem;">
+        <label for="customerPhoneInput">Customer Phone Number *</label>
+        <input
+          type="tel"
+          id="customerPhoneInput"
+          placeholder="(555) 123-4567"
+          autocomplete="tel"
+        >
+        <small id="phoneVerifyNote" style="display: none; color: #666; margin-top: 0.25rem;">
+          ℹ️ Please verify this number with the customer
+        </small>
+        <small id="phoneErrorNote" style="display: none; color: #dc3545; margin-top: 0.25rem;"></small>
+        <div style="margin-top: 0.5rem;">
+          <label style="display: flex; align-items: center; font-weight: normal; cursor: pointer;">
+            <input
+              type="checkbox"
+              id="phoneRefusedCheckbox"
+              onchange="togglePhoneRequired()"
+              style="margin-right: 0.5rem;"
+            >
+            Customer refused to provide phone number
+          </label>
+        </div>
+      </div>
+
       <!-- Customer Search -->
       <div id="customerSearchSection">
         <div class="form-group">
@@ -523,8 +618,20 @@
               <input type="email" id="email" placeholder="[email protected]">
             </div>
             <div class="form-group">
-              <label for="phone">Phone</label>
-              <input type="tel" id="phone" placeholder="+1234567890">
+              <label for="phone">Phone *</label>
+              <input type="tel" id="phone" placeholder="(555) 123-4567">
+              <small id="manualPhoneErrorNote" style="display: none; color: #dc3545; margin-top: 0.25rem;"></small>
+              <div style="margin-top: 0.5rem;">
+                <label style="display: flex; align-items: center; font-weight: normal; cursor: pointer;">
+                  <input
+                    type="checkbox"
+                    id="manualPhoneRefusedCheckbox"
+                    onchange="toggleManualPhoneRequired()"
+                    style="margin-right: 0.5rem;"
+                  >
+                  Customer refused to provide phone number
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -682,13 +789,32 @@
 
     function selectCustomer(customer) {
       selectedCustomer = customer;
-      
+
       // Show selected customer card
       document.getElementById('selectedCustomerCard').style.display = 'flex';
       document.getElementById('selectedCustomerName').textContent = `${customer.firstName} ${customer.lastName}`;
       document.getElementById('selectedCustomerEmail').textContent = customer.email || '';
       document.getElementById('selectedCustomerPhone').textContent = customer.phone || '';
-      
+
+      // Show phone number section
+      const phoneSection = document.getElementById('phoneNumberSection');
+      const phoneInput = document.getElementById('customerPhoneInput');
+      const phoneVerifyNote = document.getElementById('phoneVerifyNote');
+      const phoneRefusedCheckbox = document.getElementById('phoneRefusedCheckbox');
+
+      phoneSection.style.display = 'block';
+      phoneRefusedCheckbox.checked = false;
+
+      if (customer.phone) {
+        // Customer has phone - show it and display verification note
+        phoneInput.value = formatPhoneDisplay(customer.phone);
+        phoneVerifyNote.style.display = 'block';
+      } else {
+        // No phone - clear input and hide verification note
+        phoneInput.value = '';
+        phoneVerifyNote.style.display = 'none';
+      }
+
       // Hide search section
       document.getElementById('customerSearchSection').style.display = 'none';
       document.getElementById('customerSearch').value = '';
@@ -698,6 +824,7 @@
     function clearCustomer() {
       selectedCustomer = null;
       document.getElementById('selectedCustomerCard').style.display = 'none';
+      document.getElementById('phoneNumberSection').style.display = 'none';
       document.getElementById('customerSearchSection').style.display = 'block';
       document.getElementById('customerSearch').focus();
     }
@@ -723,7 +850,7 @@
         clearTimeout(productSearchTimeout);
         productSearchTimeout = setTimeout(() => {
           searchProducts(query);
-        }, 300);
+        }, 600);
       });
     }
 
@@ -745,34 +872,111 @@
 
     function displayProductResults(products) {
       const results = document.getElementById('productResults');
-      
+
       if (!products || products.length === 0) {
         results.innerHTML = '<div class="autocomplete-empty">No products found</div>';
         return;
       }
 
-      results.innerHTML = products.slice(0, 10).map(product => {
-        const subtitle = [];
-        if (product.variantTitle && product.variantTitle !== 'Default Title') {
-          subtitle.push(product.variantTitle);
-        }
-        if (product.price) {
-          subtitle.push(`$${parseFloat(product.price).toFixed(2)}`);
-        }
-        if (product.sku) {
-          subtitle.push(`SKU: ${product.sku}`);
-        }
-        if (product.barcode) {
-          subtitle.push(`Barcode: ${product.barcode}`);
-        }
+      results.innerHTML = products.map((item, index) => {
+        // Check if this is a grouped product or individual variant
+        if (item.type === 'product') {
+          // Grouped product with variants
+          const subtitle = [];
+          if (item.vendor) subtitle.push(item.vendor);
+          subtitle.push(`${item.variants.length} variant${item.variants.length !== 1 ? 's' : ''}`);
 
-        return `
-          <div class="autocomplete-item" onclick='selectProduct(${JSON.stringify(product)})'>
-            <div class="autocomplete-item-title">${escapeHtml(product.productTitle)}</div>
-            <div class="autocomplete-item-subtitle">${escapeHtml(subtitle.join(' • '))}</div>
-          </div>
-        `;
+          // Add status badge if not ACTIVE
+          let statusBadge = '';
+          if (item.status && item.status !== 'ACTIVE') {
+            const statusLabel = item.status === 'DRAFT' ? 'Draft' : 'Archived';
+            statusBadge = `<span style="display: inline-block; font-size: 11px; padding: 2px 6px; margin-left: 6px; background: #e0e0e0; color: #666; border-radius: 3px; font-weight: 500;">${statusLabel}</span>`;
+          }
+
+          const variantsHtml = item.variants.map(variant => {
+            const varSub = [];
+            if (variant.price) varSub.push(`$${parseFloat(variant.price).toFixed(2)}`);
+            if (variant.sku) varSub.push(`SKU: ${variant.sku}`);
+            if (variant.barcode) varSub.push(`Barcode: ${variant.barcode}`);
+
+            const variantData = {
+              variantId: variant.variantId,
+              productTitle: item.productTitle,
+              variantTitle: variant.variantTitle,
+              price: variant.price,
+              sku: variant.sku,
+              barcode: variant.barcode
+            };
+
+            return `
+              <div class="variant-item" onclick='selectVariant(${JSON.stringify(variantData)})'>
+                <div class="variant-title">${escapeHtml(variant.variantTitle === 'Default Title' ? 'Standard' : variant.variantTitle)}</div>
+                <div class="variant-subtitle">${escapeHtml(varSub.join(' • '))}</div>
+              </div>
+            `;
+          }).join('');
+
+          return `
+            <div class="product-group">
+              <div class="product-header" onclick="toggleVariants(${index})">
+                <div>
+                  <div class="autocomplete-item-title">${escapeHtml(item.productTitle)}${statusBadge}</div>
+                  <div class="autocomplete-item-subtitle">${escapeHtml(subtitle.join(' • '))}</div>
+                </div>
+                <span class="product-expand-icon" id="expand-icon-${index}">▸</span>
+              </div>
+              <div class="variant-list" id="variant-list-${index}">
+                ${variantsHtml}
+              </div>
+            </div>
+          `;
+        } else {
+          // Individual variant (barcode match)
+          const subtitle = [];
+          if (item.vendor) subtitle.push(item.vendor);
+          if (item.variantTitle && item.variantTitle !== 'Default Title') {
+            subtitle.push(item.variantTitle);
+          }
+          if (item.price) subtitle.push(`$${parseFloat(item.price).toFixed(2)}`);
+          if (item.sku) subtitle.push(`SKU: ${item.sku}`);
+          if (item.barcode) subtitle.push(`Barcode: ${item.barcode}`);
+
+          let statusBadge = '';
+          if (item.status && item.status !== 'ACTIVE') {
+            const statusLabel = item.status === 'DRAFT' ? 'Draft' : 'Archived';
+            statusBadge = `<span style="display: inline-block; font-size: 11px; padding: 2px 6px; margin-left: 6px; background: #e0e0e0; color: #666; border-radius: 3px; font-weight: 500;">${statusLabel}</span>`;
+          }
+
+          return `
+            <div class="autocomplete-item" onclick='selectProduct(${JSON.stringify(item)})'>
+              <div class="autocomplete-item-title">${escapeHtml(item.productTitle)}${statusBadge}</div>
+              <div class="autocomplete-item-subtitle">${escapeHtml(subtitle.join(' • '))}</div>
+            </div>
+          `;
+        }
       }).join('');
+    }
+
+    function toggleVariants(index) {
+      const variantList = document.getElementById(`variant-list-${index}`);
+      const expandIcon = document.getElementById(`expand-icon-${index}`);
+
+      variantList.classList.toggle('show');
+      expandIcon.classList.toggle('expanded');
+    }
+
+    function selectVariant(variant) {
+      addLineItem({
+        variantId: variant.variantId,
+        title: variant.productTitle,
+        variantTitle: variant.variantTitle !== 'Default Title' ? variant.variantTitle : '',
+        price: parseFloat(variant.price),
+        quantity: 1,
+        type: 'product'
+      });
+
+      document.getElementById('productSearch').value = '';
+      document.getElementById('productResults').classList.remove('show');
     }
 
     function selectProduct(product) {
@@ -895,6 +1099,43 @@
     async function submitOrder() {
       hideMessages();
 
+      // Validate phone number if customer is selected
+      if (selectedCustomer) {
+        const phoneInput = document.getElementById('customerPhoneInput');
+        const phoneRefused = document.getElementById('phoneRefusedCheckbox').checked;
+        const phoneErrorNote = document.getElementById('phoneErrorNote');
+
+        if (!phoneRefused) {
+          const phoneValidation = validatePhone(phoneInput.value);
+          if (!phoneValidation.valid) {
+            phoneErrorNote.textContent = phoneValidation.error;
+            phoneErrorNote.style.display = 'block';
+            phoneInput.focus();
+            return;
+          }
+          phoneErrorNote.style.display = 'none';
+        }
+      } else {
+        // Validate phone number for manual entry
+        const manualFields = document.getElementById('manualCustomerFields');
+        if (manualFields.classList.contains('show')) {
+          const phoneInput = document.getElementById('phone');
+          const phoneRefused = document.getElementById('manualPhoneRefusedCheckbox').checked;
+          const phoneErrorNote = document.getElementById('manualPhoneErrorNote');
+
+          if (!phoneRefused) {
+            const phoneValidation = validatePhone(phoneInput.value);
+            if (!phoneValidation.valid) {
+              phoneErrorNote.textContent = phoneValidation.error;
+              phoneErrorNote.style.display = 'block';
+              phoneInput.focus();
+              return;
+            }
+            phoneErrorNote.style.display = 'none';
+          }
+        }
+      }
+
       // Validation
       const customer = getCustomerData();
       if (!customer.email && !customer.phone) {
@@ -961,19 +1202,43 @@
 
     function getCustomerData() {
       if (selectedCustomer) {
+        const phoneRefused = document.getElementById('phoneRefusedCheckbox').checked;
+        let phone = '';
+
+        if (!phoneRefused) {
+          const phoneInput = document.getElementById('customerPhoneInput').value.trim();
+          const phoneValidation = validatePhone(phoneInput);
+          if (phoneValidation.valid) {
+            phone = phoneValidation.normalized;
+          }
+        }
+
         return {
+          id: selectedCustomer.id,
           firstName: selectedCustomer.firstName,
           lastName: selectedCustomer.lastName,
           email: selectedCustomer.email,
-          phone: selectedCustomer.phone
+          phone: phone || selectedCustomer.phone || ''
         };
+      }
+
+      // Manual entry
+      const phoneRefused = document.getElementById('manualPhoneRefusedCheckbox').checked;
+      let phone = '';
+
+      if (!phoneRefused) {
+        const phoneInput = document.getElementById('phone').value.trim();
+        const phoneValidation = validatePhone(phoneInput);
+        if (phoneValidation.valid) {
+          phone = phoneValidation.normalized;
+        }
       }
 
       return {
         firstName: document.getElementById('firstName').value.trim(),
         lastName: document.getElementById('lastName').value.trim(),
         email: document.getElementById('email').value.trim(),
-        phone: document.getElementById('phone').value.trim()
+        phone: phone
       };
     }
 
@@ -1067,6 +1332,66 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    // Phone number utilities
+    function formatPhoneDisplay(phone) {
+      if (!phone) return '';
+      // Remove all non-digit characters
+      const digits = phone.replace(/\D/g, '');
+      // Format based on length
+      if (digits.length === 10) {
+        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+      } else if (digits.length === 11 && digits[0] === '1') {
+        return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+      }
+      return phone; // Return as-is if format doesn't match
+    }
+
+    function validatePhone(phone) {
+      if (!phone) return { valid: false, error: 'Phone number is required' };
+
+      // Remove all non-digit characters
+      const digits = phone.replace(/\D/g, '');
+
+      // Check for valid length: 10 digits or 11 digits starting with 1
+      if (digits.length === 10) {
+        return { valid: true, normalized: digits };
+      } else if (digits.length === 11 && digits[0] === '1') {
+        return { valid: true, normalized: digits.slice(1) }; // Remove leading 1, store 10 digits
+      } else {
+        return { valid: false, error: 'Phone must be 10 digits (or 11 with leading 1)' };
+      }
+    }
+
+    function togglePhoneRequired() {
+      const checkbox = document.getElementById('phoneRefusedCheckbox');
+      const phoneInput = document.getElementById('customerPhoneInput');
+      const phoneErrorNote = document.getElementById('phoneErrorNote');
+
+      if (checkbox.checked) {
+        phoneInput.disabled = true;
+        phoneInput.value = '';
+        phoneErrorNote.style.display = 'none';
+      } else {
+        phoneInput.disabled = false;
+        phoneInput.focus();
+      }
+    }
+
+    function toggleManualPhoneRequired() {
+      const checkbox = document.getElementById('manualPhoneRefusedCheckbox');
+      const phoneInput = document.getElementById('phone');
+      const phoneErrorNote = document.getElementById('manualPhoneErrorNote');
+
+      if (checkbox.checked) {
+        phoneInput.disabled = true;
+        phoneInput.value = '';
+        phoneErrorNote.style.display = 'none';
+      } else {
+        phoneInput.disabled = false;
+        phoneInput.focus();
+      }
     }
   </script>
 </body>

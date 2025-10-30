@@ -54,7 +54,7 @@ export default {
         // Try barcode search first if query looks like a barcode (numbers/alphanumeric)
         let results = [];
 
-        // Search by barcode using GraphQL
+        // Search by barcode using GraphQL (include all statuses: active, draft, archived)
         const barcodeData = await shopifyGraphQL(env, `
           query($q:String!) {
             productVariants(first: 10, query: $q) {
@@ -69,6 +69,8 @@ export default {
                   product {
                     id
                     title
+                    vendor
+                    status
                     featuredImage {
                       url(transform: { maxWidth: 100 })
                     }
@@ -77,11 +79,14 @@ export default {
               }
             }
           }
-        `, { q: `barcode:${searchQuery}` });
+        `, { q: `(barcode:${searchQuery}) AND (status:ACTIVE OR status:DRAFT OR status:ARCHIVED)` });
 
         results = (barcodeData?.productVariants?.edges || []).map(edge => ({
+          type: 'variant', // Mark as individual variant (barcode match)
           variantId: edge.node.legacyResourceId,
           productTitle: edge.node.product.title,
+          vendor: edge.node.product.vendor || "",
+          status: edge.node.product.status,
           variantTitle: edge.node.displayName || "Default Title",
           price: edge.node.price,
           sku: edge.node.sku || "",
@@ -90,7 +95,7 @@ export default {
           image: edge.node.product.featuredImage?.url || null
         }));
 
-        // If no barcode matches, search by product title
+        // If no barcode matches, search by product title (include all statuses: active, draft, archived)
         if (results.length === 0) {
           const titleData = await shopifyGraphQL(env, `
             query($q:String!) {
@@ -99,10 +104,12 @@ export default {
                   node {
                     id
                     title
+                    vendor
+                    status
                     featuredImage {
                       url(transform: { maxWidth: 100 })
                     }
-                    variants(first: 5) {
+                    variants(first: 10) {
                       edges {
                         node {
                           legacyResourceId
@@ -118,27 +125,28 @@ export default {
                 }
               }
             }
-          `, { q: `title:*${searchQuery}*` });
+          `, { q: `(title:*${searchQuery}*) AND (status:ACTIVE OR status:DRAFT OR status:ARCHIVED)` });
 
-          // Flatten variants from all matching products
-          (titleData?.products?.edges || []).forEach(edge => {
-            (edge.node.variants.edges || []).forEach(variantEdge => {
-              results.push({
-                variantId: variantEdge.node.legacyResourceId,
-                productTitle: edge.node.title,
-                variantTitle: variantEdge.node.displayName || "Default Title",
-                price: variantEdge.node.price,
-                sku: variantEdge.node.sku || "",
-                barcode: variantEdge.node.barcode || "",
-                inventoryQuantity: variantEdge.node.inventoryQuantity || 0,
-                image: edge.node.featuredImage?.url || null
-              });
-            });
-          });
+          // Return grouped products with variants
+          results = (titleData?.products?.edges || []).map(edge => ({
+            type: 'product', // Mark as grouped product
+            productTitle: edge.node.title,
+            vendor: edge.node.vendor || "",
+            status: edge.node.status,
+            image: edge.node.featuredImage?.url || null,
+            variants: (edge.node.variants.edges || []).map(variantEdge => ({
+              variantId: variantEdge.node.legacyResourceId,
+              variantTitle: variantEdge.node.displayName || "Default Title",
+              price: variantEdge.node.price,
+              sku: variantEdge.node.sku || "",
+              barcode: variantEdge.node.barcode || "",
+              inventoryQuantity: variantEdge.node.inventoryQuantity || 0
+            }))
+          }));
+
+          // Limit to 10 products
+          results = results.slice(0, 10);
         }
-
-        // Limit results
-        results = results.slice(0, 10);
 
         return json({ products: results }, 200);
       } catch (e) {
@@ -158,6 +166,21 @@ export default {
 
         // 1) Attach/create customer (email preferred; phone attach-only)
         const customer = await findOrAttachCustomer(body.customer, env);
+
+        // 1b) Update customer phone if provided and customer exists
+        if (customer && customer.id && phone && phone !== customer.phone) {
+          try {
+            await shopifyRest(env, `/customers/${customer.id}.json`, "PUT", {
+              customer: {
+                id: customer.id,
+                phone: phone
+              }
+            });
+          } catch (e) {
+            console.error("Failed to update customer phone:", e);
+            // Continue anyway - phone update failure shouldn't block order creation
+          }
+        }
 
         // 2) Build line items
         const lineItems = [];
@@ -229,15 +252,33 @@ export default {
         const notifyCustomer = body.notifyCustomer !== false;
 
         if (env.RESEND_API_KEY && env.FROM_EMAIL && customerEmail && notifyCustomer) {
+          // Build item list for customer email
+          const itemList = (draft?.line_items || []).map(li => {
+            const title = li.title || li.name || 'Product';
+            const qty = li.quantity || 1;
+            return `<li>${title} (Qty: ${qty})</li>`;
+          }).join('');
+
           await sendResend(env, {
             from: env.FROM_EMAIL,
             to: customerEmail,
             reply_to: env.STAFF_EMAIL || undefined,
-            subject: "We received your request",
+            subject: "We received your request - Curly's Sports Supplements",
             html: `
-              <p>Thanks—your request has been received and is in our queue.</p>
-              <p><strong>Reference:</strong> ${draft?.name || draft?.id}</p>
-              <p>We'll email you again when it's ready.</p>
+              <h2 style="color: #333;">Order Request Received</h2>
+              <p>Thanks! Your request has been received and is in our queue.</p>
+
+              <p><strong>Reference Number:</strong> ${draft?.name || draft?.id}</p>
+
+              <h3 style="color: #555; font-size: 16px;">Items Requested:</h3>
+              <ul style="list-style-type: none; padding-left: 0;">
+                ${itemList}
+              </ul>
+
+              <p>We'll email you again when your items are ready.</p>
+              <p style="color: #666; font-size: 14px; margin-top: 20px;">
+                Questions? Reply to this email or call us at the store.
+              </p>
             `
           });
         }
@@ -295,6 +336,8 @@ export default {
         .sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
 
       let notified = 0, invoiced = 0;
+      const autoInvoice = String(env.AUTO_INVOICE_ON_STOCK || "false").toLowerCase() === "true";
+
       for (const draft of matches) {
         const alreadyNotified =
           (draft.tags || "").includes("notified") ||
@@ -304,7 +347,14 @@ export default {
         const email = draft?.customer?.email;
         const productName = (draft.line_items || []).find(li => Number(li.variant_id) === Number(variantId))?.title;
 
-        if (email && env.RESEND_API_KEY && env.FROM_EMAIL) {
+        // Send invoice if AUTO_INVOICE_ON_STOCK is true, otherwise send plain text email
+        if (autoInvoice && email) {
+          // Send Shopify invoice only (better formatted, allows payment)
+          await sendInvoice(env, draft, "You can pay now to reserve it, or come in to buy. Thanks!");
+          invoiced++;
+          notified++;
+        } else if (email && env.RESEND_API_KEY && env.FROM_EMAIL) {
+          // Fallback: send plain text email if no auto-invoice or no email
           await sendResend(env, {
             from: env.FROM_EMAIL,
             to: email,
@@ -330,11 +380,6 @@ export default {
               <p>Please set the item aside.</p>
             `
           });
-        }
-
-        if (String(env.AUTO_INVOICE_ON_STOCK || "false").toLowerCase() === "true" && email) {
-          await sendInvoice(env, draft, "You can pay now to reserve it, or come in to buy. Thanks!");
-          invoiced++;
         }
 
         await shopifyRest(env, `/draft_orders/${draft.id}.json`, "PUT", {
