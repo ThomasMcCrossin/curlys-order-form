@@ -95,6 +95,12 @@ export default {
           image: edge.node.product.featuredImage?.url || null
         }));
 
+        // Sort barcode results: ACTIVE first, then DRAFT, then ARCHIVED
+        results.sort((a, b) => {
+          const statusOrder = { ACTIVE: 0, DRAFT: 1, ARCHIVED: 2 };
+          return (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
+        });
+
         // If no barcode matches, search by product title (include all statuses: active, draft, archived)
         if (results.length === 0) {
           const titleData = await shopifyGraphQL(env, `
@@ -143,6 +149,12 @@ export default {
               inventoryQuantity: variantEdge.node.inventoryQuantity || 0
             }))
           }));
+
+          // Sort title search results: ACTIVE first, then DRAFT, then ARCHIVED
+          results.sort((a, b) => {
+            const statusOrder = { ACTIVE: 0, DRAFT: 1, ARCHIVED: 2 };
+            return (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
+          });
 
           // Limit to 10 products
           results = results.slice(0, 10);
