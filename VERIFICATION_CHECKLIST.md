@@ -16,10 +16,12 @@ Project name: curlys-order-form
 Production branch: main
 Framework preset: None
 Build command: (leave empty)
-Build output directory: /
+Build output directory: public
 Root directory: (leave empty)
 Environment variables: (none needed - frontend only)
 ```
+
+**Important**: The `public/` directory contains both the order form and dashboard.
 
 ## After New Pages Project is Created
 

@@ -1,27 +1,39 @@
 # Curlys Order Form
 
-A customer order form application for Shopify with autocomplete search for customers and products.
+A complete order management system for Shopify with customer/product search, staff dashboard, and automated notifications.
 
 ## Project Structure
 
 ```
 .
-├── index.html              # Main order form (frontend)
-├── docs/
-│   ├── deployment-guide.md # Complete deployment instructions
-│   └── improved-worker.md  # Cloudflare Worker code
-├── scripts/                # Python utility scripts
-└── README.md              # This file
+├── public/                 # Frontend (deployed to Cloudflare Pages)
+│   ├── index.html         # Customer order form
+│   └── dashboard.html     # Staff management dashboard
+├── worker/                # Backend (deployed to Cloudflare Workers)
+│   ├── src/index.js      # API and business logic
+│   └── wrangler.toml     # Worker configuration
+├── docs/                  # Documentation
+├── DEPLOYMENT.md          # Deployment guide
+└── README.md             # This file
 ```
 
 ## Features
 
+### Customer Order Form (`index.html`)
 - Customer search with autocomplete
-- Product search with barcode support
-- Manual customer entry
-- Custom line items
-- Real-time order total calculation
+- Product search with variant support
+- Barcode scanning
+- Phone number validation
 - Draft order creation in Shopify
+- Email notifications with variant details
+
+### Staff Dashboard (`dashboard.html`)
+- View all pending order requests
+- Filter by custom items or status
+- Search by customer/order
+- Mark items as arrived
+- Email customers
+- Direct Shopify links
 
 ## Tech Stack
 
@@ -32,21 +44,27 @@ A customer order form application for Shopify with autocomplete search for custo
 
 ## Quick Start
 
-1. Review the [deployment guide](docs/deployment-guide.md)
-2. Set up your Cloudflare Worker
-3. Update the `WORKER_URL` in `index.html`
-4. Deploy to Cloudflare Pages
+1. Review [DEPLOYMENT.md](DEPLOYMENT.md) for complete setup guide
+2. Set up Git-connected Cloudflare Pages (frontend auto-deploys)
+3. Set up Cloudflare Worker (backend API)
+4. Configure environment variables in Worker
+
+## URLs
+
+- **Order Form**: `https://your-pages.pages.dev/` (or custom domain)
+- **Dashboard**: `https://your-pages.pages.dev/dashboard.html` (password: `curlys2025`)
+- **Worker API**: `https://curlys-order-form-worker.thomas-mccrossin.workers.dev`
 
 ## Configuration
 
 Before deploying, you'll need:
 
-- Shopify store access
-- Shopify Admin API token
+- Shopify store with Admin API access
 - Cloudflare account (free tier works)
-- Wrangler CLI installed
+- Resend account for emails (free tier: 3000/month)
+- GitHub repository (for auto-deploy)
 
-See the [deployment guide](docs/deployment-guide.md) for detailed setup instructions.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for step-by-step instructions.
 
 ## Cost
 

@@ -29,10 +29,14 @@
    Production branch: main
    Framework preset: None
    Build command: (leave empty)
-   Build output directory: /
+   Build output directory: public
    Root directory: (leave empty)
    ```
 6. Click **Save and Deploy**
+
+**Note**: The `public/` directory contains:
+- `index.html` - Main order form
+- `dashboard.html` - Staff dashboard
 
 ### Step 2: Configure Worker Git Auto-Deploy
 
@@ -91,11 +95,13 @@ After setup, every push to `main` branch will:
 
 ## Configuration Files Reference
 
-### Frontend (Root Directory)
+### Frontend (Public Directory)
 ```
-/index.html          - Main application file
-/exported-assets/    - Static assets
-/.gitignore          - Git ignore rules
+/public/
+  ├── index.html      - Main order form
+  └── dashboard.html  - Staff dashboard
+
+/exported-assets/     - Static assets (unused)
 ```
 
 ### Backend (Worker Directory)
@@ -126,7 +132,7 @@ FLOW_SHARED_SECRET = "BrownsCornerCanteen"
 ### Deploy Frontend Only
 ```bash
 export CLOUDFLARE_API_TOKEN="your-token-here"
-npx wrangler pages deploy . --project-name=curlys-order-form
+npx wrangler pages deploy public --project-name=curlys-order-form
 ```
 
 ### Deploy Worker Only

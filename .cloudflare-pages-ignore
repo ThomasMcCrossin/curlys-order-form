@@ -1,4 +1,5 @@
 # Cloudflare Pages - Ignore these files during deployment
+# Only deploy files from /public/ directory
 
 # Dependencies
 node_modules/
