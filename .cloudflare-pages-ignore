@@ -1,0 +1,23 @@
+# Cloudflare Pages - Ignore these files during deployment
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Worker files (deployed separately)
+worker/
+
+# Development files
+.wrangler/
+.claude/
+.git/
+.gitignore
+
+# Documentation
+docs/
+scripts/
+*.md
+!README.md
+
+# Exported assets (unused)
+exported-assets/
