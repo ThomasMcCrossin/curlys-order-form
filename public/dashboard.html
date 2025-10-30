@@ -303,10 +303,14 @@
 </head>
 <body>
   <!-- Login Screen -->
-  <div id="loginScreen" class="login-container">
+  <div id="loginScreen" class="login-container" style="display: none;">
     <h2>Staff Dashboard Login</h2>
     <form class="login-form" onsubmit="login(event)">
       <input type="password" id="passwordInput" placeholder="Enter password" required>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
+        <input type="checkbox" id="rememberDevice" style="width: auto; margin: 0;">
+        Remember this device
+      </label>
       <button type="submit" class="btn btn-primary">Login</button>
       <div id="loginError" class="login-error" style="display: none;"></div>
     </form>
@@ -346,25 +350,91 @@
   <script>
     const WORKER_URL = 'https://curlys-order-form-worker.thomas-mccrossin.workers.dev';
     const DASHBOARD_PASSWORD = '6968'; // Change this!
+    const REMEMBER_TOKEN_KEY = 'curlys_dashboard_auth';
+    const REMEMBER_TOKEN_EXPIRY_DAYS = 30;
 
     let orders = [];
     let currentFilter = 'all';
 
-    // Simple password check
+    // === AUTHENTICATION ===
+    async function checkAuth() {
+      try {
+        // Check IP whitelist first
+        const ipResponse = await fetch(`${WORKER_URL}/api/auth/check-ip`);
+        const ipData = await ipResponse.json();
+
+        if (ipData.whitelisted) {
+          console.log('Access granted: Whitelisted IP');
+          showDashboard();
+          return;
+        }
+
+        // Check for remember device token
+        const savedToken = localStorage.getItem(REMEMBER_TOKEN_KEY);
+        if (savedToken) {
+          try {
+            const tokenData = JSON.parse(savedToken);
+            const expiryDate = new Date(tokenData.expiry);
+
+            if (expiryDate > new Date() && tokenData.hash === btoa(DASHBOARD_PASSWORD)) {
+              console.log('Access granted: Remembered device');
+              showDashboard();
+              return;
+            } else {
+              // Token expired or invalid
+              localStorage.removeItem(REMEMBER_TOKEN_KEY);
+            }
+          } catch (e) {
+            localStorage.removeItem(REMEMBER_TOKEN_KEY);
+          }
+        }
+
+        // Show login screen
+        document.getElementById('loginScreen').style.display = 'flex';
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        // On error, show login screen to be safe
+        document.getElementById('loginScreen').style.display = 'flex';
+      }
+    }
+
     function login(event) {
       event.preventDefault();
       const password = document.getElementById('passwordInput').value;
+      const rememberDevice = document.getElementById('rememberDevice').checked;
       const errorDiv = document.getElementById('loginError');
 
       if (password === DASHBOARD_PASSWORD) {
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('dashboard').style.display = 'block';
-        loadOrders();
+        // Save remember token if requested
+        if (rememberDevice) {
+          const expiry = new Date();
+          expiry.setDate(expiry.getDate() + REMEMBER_TOKEN_EXPIRY_DAYS);
+
+          const tokenData = {
+            hash: btoa(password),
+            expiry: expiry.toISOString()
+          };
+
+          localStorage.setItem(REMEMBER_TOKEN_KEY, JSON.stringify(tokenData));
+        }
+
+        showDashboard();
       } else {
         errorDiv.textContent = 'Incorrect password';
         errorDiv.style.display = 'block';
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordInput').focus();
       }
     }
+
+    function showDashboard() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      loadOrders();
+    }
+
+    // Initialize auth check on page load
+    window.addEventListener('DOMContentLoaded', checkAuth);
 
     async function loadOrders() {
       const loading = document.getElementById('loading');

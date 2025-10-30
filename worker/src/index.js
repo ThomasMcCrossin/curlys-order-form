@@ -8,6 +8,14 @@ export default {
     // Health check
     if (url.pathname === "/health") return new Response("OK", { headers: cors() });
 
+    // === IP WHITELIST CHECK ===
+    if (url.pathname === "/api/auth/check-ip" && request.method === "GET") {
+      const clientIP = request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "unknown";
+      const whitelistedIPs = ["142.177.77.123"]; // Work IP
+      const isWhitelisted = whitelistedIPs.includes(clientIP);
+      return json({ whitelisted: isWhitelisted, ip: clientIP }, 200);
+    }
+
     // === NEW: CUSTOMER SEARCH API ===
     if (url.pathname === "/api/customers/search" && request.method === "GET") {
       try {

@@ -523,10 +523,104 @@
         z-index: 100;
       }
     }
+
+    /* Login Screen Overlay */
+    .login-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--color-background);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .login-box {
+      background: var(--color-surface);
+      padding: var(--space-xl);
+      border-radius: var(--radius-base);
+      box-shadow: var(--shadow-md);
+      max-width: 400px;
+      width: 100%;
+      margin: var(--space-md);
+    }
+
+    .login-box h2 {
+      margin-bottom: var(--space-md);
+      text-align: center;
+    }
+
+    .login-box .form-group {
+      margin-bottom: var(--space-md);
+    }
+
+    .login-box input[type="password"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+    }
+
+    .login-box input[type="password"]:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    .login-box .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-md);
+    }
+
+    .login-box .checkbox-group input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+
+    .login-box .checkbox-group label {
+      margin: 0;
+      font-weight: normal;
+      font-size: 14px;
+    }
+
+    .login-box button {
+      width: 100%;
+    }
+
+    .login-error {
+      color: var(--color-error);
+      font-size: 14px;
+      margin-top: var(--space-sm);
+      text-align: center;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
+  <!-- Login Screen (Hidden once authenticated) -->
+  <div id="loginOverlay" class="login-overlay" style="display: none;">
+    <div class="login-box">
+      <h2>Customer Order Form</h2>
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label for="loginPassword">Enter Password:</label>
+          <input type="password" id="loginPassword" required autofocus>
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="rememberDevice">
+          <label for="rememberDevice">Remember this device</label>
+        </div>
+        <button type="submit" class="btn btn-primary">Login</button>
+        <div id="loginError" class="login-error" style="display: none;"></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="mainContent" class="container" style="display: none;">
     <h1>Customer Order Form</h1>
 
     <!-- Success Message -->
@@ -710,6 +804,9 @@
   <script>
     // Configuration - UPDATE THIS with your Cloudflare Worker URL
     const WORKER_URL = 'https://curlys-order-form-worker.thomas-mccrossin.workers.dev';
+    const ORDER_FORM_PASSWORD = '6968';
+    const REMEMBER_TOKEN_KEY = 'curlys_order_form_auth';
+    const REMEMBER_TOKEN_EXPIRY_DAYS = 30;
 
     // State
     let selectedCustomer = null;
@@ -718,8 +815,86 @@
     let productSearchTimeout = null;
     let currentProductResults = []; // Store current search results
 
+    // === AUTHENTICATION ===
+    async function checkAuth() {
+      try {
+        // Check IP whitelist first
+        const ipResponse = await fetch(`${WORKER_URL}/api/auth/check-ip`);
+        const ipData = await ipResponse.json();
+
+        if (ipData.whitelisted) {
+          console.log('Access granted: Whitelisted IP');
+          showMainContent();
+          return;
+        }
+
+        // Check for remember device token
+        const savedToken = localStorage.getItem(REMEMBER_TOKEN_KEY);
+        if (savedToken) {
+          try {
+            const tokenData = JSON.parse(savedToken);
+            const expiryDate = new Date(tokenData.expiry);
+
+            if (expiryDate > new Date() && tokenData.hash === btoa(ORDER_FORM_PASSWORD)) {
+              console.log('Access granted: Remembered device');
+              showMainContent();
+              return;
+            } else {
+              // Token expired or invalid
+              localStorage.removeItem(REMEMBER_TOKEN_KEY);
+            }
+          } catch (e) {
+            localStorage.removeItem(REMEMBER_TOKEN_KEY);
+          }
+        }
+
+        // Show login screen
+        document.getElementById('loginOverlay').style.display = 'flex';
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        // On error, show login screen to be safe
+        document.getElementById('loginOverlay').style.display = 'flex';
+      }
+    }
+
+    function handleLogin(event) {
+      event.preventDefault();
+
+      const password = document.getElementById('loginPassword').value;
+      const rememberDevice = document.getElementById('rememberDevice').checked;
+      const errorDiv = document.getElementById('loginError');
+
+      if (password === ORDER_FORM_PASSWORD) {
+        // Save remember token if requested
+        if (rememberDevice) {
+          const expiry = new Date();
+          expiry.setDate(expiry.getDate() + REMEMBER_TOKEN_EXPIRY_DAYS);
+
+          const tokenData = {
+            hash: btoa(password),
+            expiry: expiry.toISOString()
+          };
+
+          localStorage.setItem(REMEMBER_TOKEN_KEY, JSON.stringify(tokenData));
+        }
+
+        showMainContent();
+      } else {
+        errorDiv.textContent = 'Incorrect password';
+        errorDiv.style.display = 'block';
+        document.getElementById('loginPassword').value = '';
+        document.getElementById('loginPassword').focus();
+      }
+    }
+
+    function showMainContent() {
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'block';
+    }
+
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
+      checkAuth(); // Check authentication first
       setupCustomerSearch();
       setupProductSearch();
       setupKeyboardNav();
