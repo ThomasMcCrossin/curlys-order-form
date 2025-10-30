@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Dashboard - Curly's Sports Supplements</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #F5F7FA;
+      color: #333;
+      padding: 20px;
+    }
+
+    .header {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 24px;
+      color: #2D3748;
+    }
+
+    .filters {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .filter-btn {
+      padding: 8px 16px;
+      border: 1px solid #E2E8F0;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .filter-btn:hover {
+      background: #F7FAFC;
+    }
+
+    .filter-btn.active {
+      background: #4299E1;
+      color: white;
+      border-color: #4299E1;
+    }
+
+    .search-box {
+      padding: 8px 16px;
+      border: 1px solid #E2E8F0;
+      border-radius: 6px;
+      font-size: 14px;
+      width: 250px;
+    }
+
+    .orders-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .order-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .order-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #E2E8F0;
+    }
+
+    .order-info h3 {
+      font-size: 18px;
+      color: #2D3748;
+      margin-bottom: 4px;
+    }
+
+    .order-meta {
+      font-size: 14px;
+      color: #718096;
+    }
+
+    .status-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-pending {
+      background: #FED7D7;
+      color: #C53030;
+    }
+
+    .status-ready {
+      background: #C6F6D5;
+      color: #276749;
+    }
+
+    .items-list {
+      margin-bottom: 16px;
+    }
+
+    .item {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px;
+      background: #F7FAFC;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+
+    .item:last-child {
+      margin-bottom: 0;
+    }
+
+    .item-details {
+      flex: 1;
+    }
+
+    .item-title {
+      font-weight: 600;
+      color: #2D3748;
+      margin-bottom: 4px;
+    }
+
+    .item-variant {
+      font-size: 14px;
+      color: #718096;
+    }
+
+    .custom-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #FBD38D;
+      color: #7C2D12;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .item-qty {
+      font-size: 14px;
+      color: #718096;
+      white-space: nowrap;
+      margin-left: 12px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #4299E1;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #3182CE;
+    }
+
+    .btn-success {
+      background: #48BB78;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #38A169;
+    }
+
+    .btn-secondary {
+      background: #E2E8F0;
+      color: #2D3748;
+    }
+
+    .btn-secondary:hover {
+      background: #CBD5E0;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #718096;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      background: white;
+      border-radius: 8px;
+      color: #718096;
+    }
+
+    .empty h2 {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+
+    .spinner {
+      border: 3px solid #E2E8F0;
+      border-top-color: #4299E1;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .refresh-btn {
+      padding: 8px 16px;
+      background: #48BB78;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .refresh-btn:hover {
+      background: #38A169;
+    }
+
+    /* Login Screen */
+    .login-container {
+      max-width: 400px;
+      margin: 100px auto;
+      padding: 40px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .login-container h2 {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .login-form input {
+      padding: 12px;
+      border: 1px solid #E2E8F0;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .login-error {
+      color: #C53030;
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="loginScreen" class="login-container">
+    <h2>Staff Dashboard Login</h2>
+    <form class="login-form" onsubmit="login(event)">
+      <input type="password" id="passwordInput" placeholder="Enter password" required>
+      <button type="submit" class="btn btn-primary">Login</button>
+      <div id="loginError" class="login-error" style="display: none;"></div>
+    </form>
+  </div>
+
+  <!-- Dashboard (hidden until logged in) -->
+  <div id="dashboard" style="display: none;">
+    <div class="header">
+      <div>
+        <h1>Order Dashboard</h1>
+        <div class="order-meta" style="margin-top: 8px;">
+          <span id="orderCount">Loading...</span>
+        </div>
+      </div>
+      <div class="filters">
+        <input type="text" class="search-box" id="searchBox" placeholder="Search orders..." onkeyup="filterOrders()">
+        <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All Orders</button>
+        <button class="filter-btn" data-filter="custom" onclick="setFilter('custom')">Custom Items</button>
+        <button class="filter-btn" data-filter="pending" onclick="setFilter('pending')">Pending</button>
+        <button class="refresh-btn" onclick="loadOrders()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Loading orders...</p>
+    </div>
+
+    <div id="emptyState" class="empty" style="display: none;">
+      <h2>No Orders Found</h2>
+      <p>There are no pending order requests at this time.</p>
+    </div>
+
+    <div id="ordersContainer" class="orders-container"></div>
+  </div>
+
+  <script>
+    const WORKER_URL = 'https://curlys-order-form-worker.thomas-mccrossin.workers.dev';
+    const DASHBOARD_PASSWORD = 'curlys2025'; // Change this!
+
+    let orders = [];
+    let currentFilter = 'all';
+
+    // Simple password check
+    function login(event) {
+      event.preventDefault();
+      const password = document.getElementById('passwordInput').value;
+      const errorDiv = document.getElementById('loginError');
+
+      if (password === DASHBOARD_PASSWORD) {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        loadOrders();
+      } else {
+        errorDiv.textContent = 'Incorrect password';
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    async function loadOrders() {
+      const loading = document.getElementById('loading');
+      const empty = document.getElementById('emptyState');
+      const container = document.getElementById('ordersContainer');
+
+      loading.style.display = 'block';
+      empty.style.display = 'none';
+      container.innerHTML = '';
+
+      try {
+        const response = await fetch(`${WORKER_URL}/api/dashboard/orders`);
+        const data = await response.json();
+
+        orders = data.orders || [];
+
+        if (orders.length === 0) {
+          loading.style.display = 'none';
+          empty.style.display = 'block';
+        } else {
+          loading.style.display = 'none';
+          renderOrders();
+        }
+      } catch (error) {
+        console.error('Error loading orders:', error);
+        loading.innerHTML = '<p style="color: #C53030;">Error loading orders. Please try again.</p>';
+      }
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+
+      // Update button states
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.filter === filter) {
+          btn.classList.add('active');
+        }
+      });
+
+      renderOrders();
+    }
+
+    function filterOrders() {
+      renderOrders();
+    }
+
+    function renderOrders() {
+      const container = document.getElementById('ordersContainer');
+      const countEl = document.getElementById('orderCount');
+      const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+
+      let filtered = orders;
+
+      // Apply filter
+      if (currentFilter === 'custom') {
+        filtered = filtered.filter(order =>
+          order.items.some(item => item.isCustom)
+        );
+      } else if (currentFilter === 'pending') {
+        filtered = filtered.filter(order => order.status === 'pending');
+      }
+
+      // Apply search
+      if (searchTerm) {
+        filtered = filtered.filter(order =>
+          order.name.toLowerCase().includes(searchTerm) ||
+          order.customerName.toLowerCase().includes(searchTerm) ||
+          order.customerEmail.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      countEl.textContent = `${filtered.length} order${filtered.length !== 1 ? 's' : ''}`;
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty"><h2>No orders match your filter</h2></div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(order => `
+        <div class="order-card">
+          <div class="order-header">
+            <div class="order-info">
+              <h3>${escapeHtml(order.name)} - ${escapeHtml(order.customerName)}</h3>
+              <div class="order-meta">
+                <strong>Email:</strong> ${escapeHtml(order.customerEmail || 'N/A')}<br>
+                <strong>Phone:</strong> ${escapeHtml(order.customerPhone || 'N/A')}<br>
+                <strong>Created:</strong> ${formatDate(order.createdAt)}
+              </div>
+            </div>
+            <span class="status-badge ${order.status === 'pending' ? 'status-pending' : 'status-ready'}">
+              ${order.status}
+            </span>
+          </div>
+
+          <div class="items-list">
+            ${order.items.map(item => `
+              <div class="item">
+                <div class="item-details">
+                  <div class="item-title">
+                    ${escapeHtml(item.title)}
+                    ${item.isCustom ? '<span class="custom-badge">CUSTOM</span>' : ''}
+                  </div>
+                  ${item.variant ? `<div class="item-variant">${escapeHtml(item.variant)}</div>` : ''}
+                </div>
+                <div class="item-qty">Qty: ${item.quantity}</div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-success" onclick="markReady(${order.id})">✓ Items Arrived</button>
+            <button class="btn btn-primary" onclick="emailCustomer(${order.id})">✉ Email Customer</button>
+            <button class="btn btn-secondary" onclick="viewInShopify(${order.id})">View in Shopify</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffHours < 1) return 'Less than 1 hour ago';
+      if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+      if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+
+      return date.toLocaleDateString();
+    }
+
+    async function markReady(orderId) {
+      if (!confirm('Mark all items as arrived for this order?')) return;
+
+      try {
+        const response = await fetch(`${WORKER_URL}/api/dashboard/orders/${orderId}/ready`, {
+          method: 'POST'
+        });
+
+        if (response.ok) {
+          alert('Order marked as ready!');
+          loadOrders();
+        } else {
+          alert('Error updating order');
+        }
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    }
+
+    async function emailCustomer(orderId) {
+      const message = prompt('Enter message to customer (or leave blank for default):');
+      if (message === null) return;
+
+      try {
+        const response = await fetch(`${WORKER_URL}/api/dashboard/orders/${orderId}/email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: message || undefined })
+        });
+
+        if (response.ok) {
+          alert('Email sent!');
+        } else {
+          alert('Error sending email');
+        }
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    }
+
+    function viewInShopify(orderId) {
+      window.open(`https://curlys-sports-supplements.myshopify.com/admin/draft_orders/${orderId}`, '_blank');
+    }
+  </script>
+</body>
+</html>
