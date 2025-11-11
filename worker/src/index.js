@@ -350,25 +350,38 @@ export default {
         const drafts = await listOpenRequestDrafts(env);
         const orders = drafts
           .filter(d => (d.tags || "").includes("order-request"))
-          .filter(d => (d.tags || "").includes("pending"))
+          .filter(d => {
+            const tags = d.tags || "";
+            // Include orders that are either pending OR ready
+            return tags.includes("pending") || tags.includes("ready");
+          })
           .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-          .map(draft => ({
-            id: draft.id,
-            name: draft.name || `#${draft.id}`,
-            customerName: draft.customer ?
-              `${draft.customer.first_name || ''} ${draft.customer.last_name || ''}`.trim() :
-              'Guest',
-            customerEmail: draft.customer?.email || draft.note_attributes?.find(na => na.name === 'Customer Email')?.value,
-            customerPhone: draft.customer?.phone || draft.note_attributes?.find(na => na.name === 'Customer Phone')?.value,
-            createdAt: draft.created_at,
-            status: 'pending',
-            items: (draft.line_items || []).map(li => ({
-              title: li.title,
-              variant: li.variant_title !== 'Default Title' ? li.variant_title : null,
-              quantity: li.quantity,
-              isCustom: !li.variant_id // Custom items don't have variant_id
-            }))
-          }));
+          .map(draft => {
+            const tags = draft.tags || "";
+            const status = tags.includes("ready") ? "ready" : "pending";
+
+            // Extract note if available
+            const note = draft.note_attributes?.find(na => na.name === 'Note')?.value || draft.note;
+
+            return {
+              id: draft.id,
+              name: draft.name || `#${draft.id}`,
+              customerName: draft.customer ?
+                `${draft.customer.first_name || ''} ${draft.customer.last_name || ''}`.trim() :
+                'Guest',
+              customerEmail: draft.customer?.email || draft.note_attributes?.find(na => na.name === 'Customer Email')?.value,
+              customerPhone: draft.customer?.phone || draft.note_attributes?.find(na => na.name === 'Customer Phone')?.value,
+              createdAt: draft.created_at,
+              status: status,
+              note: note,
+              items: (draft.line_items || []).map(li => ({
+                title: li.title,
+                variant: li.variant_title !== 'Default Title' ? li.variant_title : null,
+                quantity: li.quantity,
+                isCustom: !li.variant_id // Custom items don't have variant_id
+              }))
+            };
+          });
 
         return json({ orders }, 200);
       } catch (e) {
