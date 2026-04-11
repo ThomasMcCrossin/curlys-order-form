@@ -25,3 +25,4 @@ crons = ["0 14 * * 1-5"]
 #   SHOPIFY_ADMIN_TOKEN - Shopify Admin API access token (SECRET)
 #   RESEND_API_KEY - Resend.com API key for emails (SECRET)
 #   FLOW_SHARED_SECRET - Shopify Flow webhook shared secret (SECRET)
+#   ORDER_FORM_ACTION_TOKEN - Order form action token for inventory corrections (SECRET)

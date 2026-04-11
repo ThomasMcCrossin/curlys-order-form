@@ -308,6 +308,27 @@
       color: var(--color-text-secondary);
     }
 
+    .line-item-stock-warning {
+      margin-top: var(--space-sm);
+      padding: var(--space-sm);
+      background: #FFF4E5;
+      border: 1px solid #FFAB00;
+      border-radius: var(--radius-sm);
+      color: #7A3E00;
+      font-size: 13px;
+    }
+
+    .line-item-stock-warning button {
+      margin-top: var(--space-sm);
+    }
+
+    .line-item-status {
+      margin-top: var(--space-sm);
+      color: var(--color-success);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
     .line-item-quantity {
       width: 80px;
     }
@@ -430,6 +451,12 @@
       background: #FFEBE6;
       border: 2px solid var(--color-error);
       color: #BF2600;
+    }
+
+    .message-warning {
+      background: #FFF4E5;
+      border: 2px solid #FFAB00;
+      color: #7A3E00;
     }
 
     .message h3 {
@@ -636,6 +663,12 @@
       <p id="errorText"></p>
     </div>
 
+    <!-- Inventory Warning Message -->
+    <div id="inventoryWarningMessage" class="message message-warning">
+      <h3>Inventory Warning</h3>
+      <p id="inventoryWarningText"></p>
+    </div>
+
     <!-- Customer Section -->
     <div class="card">
       <h2>1. Customer</h2>
@@ -814,6 +847,7 @@
     let customerSearchTimeout = null;
     let productSearchTimeout = null;
     let currentProductResults = []; // Store current search results
+    let inventoryWarningTimeout = null;
 
     // === AUTHENTICATION ===
     async function checkAuth() {
@@ -1077,6 +1111,7 @@
             if (variant.price) varSub.push(`$${parseFloat(variant.price).toFixed(2)}`);
             if (variant.sku) varSub.push(`SKU: ${variant.sku}`);
             if (variant.barcode) varSub.push(`Barcode: ${variant.barcode}`);
+            if (Number(variant.inventoryQuantity) > 0) varSub.push(`${variant.inventoryQuantity} in stock`);
 
             return `
               <div class="variant-item"
@@ -1113,6 +1148,7 @@
           if (item.price) subtitle.push(`$${parseFloat(item.price).toFixed(2)}`);
           if (item.sku) subtitle.push(`SKU: ${item.sku}`);
           if (item.barcode) subtitle.push(`Barcode: ${item.barcode}`);
+          if (Number(item.inventoryQuantity) > 0) subtitle.push(`${item.inventoryQuantity} in stock`);
 
           let statusBadge = '';
           if (item.status && item.status !== 'ACTIVE') {
@@ -1142,6 +1178,20 @@
       }
     }
 
+    function buildProductLineItem(source, productTitle) {
+      return {
+        variantId: source.variantId,
+        title: productTitle || source.productTitle,
+        variantTitle: source.variantTitle !== 'Default Title' ? source.variantTitle : '',
+        price: parseFloat(source.price),
+        quantity: 1,
+        type: 'product',
+        inventoryQuantity: Number(source.inventoryQuantity) || 0,
+        inventoryConfirmedZero: false,
+        inventoryZeroing: false
+      };
+    }
+
     function selectVariantByIndex(productIndex, variantIndex) {
       const product = currentProductResults[productIndex];
       if (!product || !product.variants) return;
@@ -1149,42 +1199,21 @@
       const variant = product.variants[variantIndex];
       if (!variant) return;
 
-      addLineItem({
-        variantId: variant.variantId,
-        title: product.productTitle,
-        variantTitle: variant.variantTitle !== 'Default Title' ? variant.variantTitle : '',
-        price: parseFloat(variant.price),
-        quantity: 1,
-        type: 'product'
-      });
+      addLineItem(buildProductLineItem(variant, product.productTitle));
 
       document.getElementById('productSearch').value = '';
       document.getElementById('productResults').classList.remove('show');
     }
 
     function selectVariant(variant) {
-      addLineItem({
-        variantId: variant.variantId,
-        title: variant.productTitle,
-        variantTitle: variant.variantTitle !== 'Default Title' ? variant.variantTitle : '',
-        price: parseFloat(variant.price),
-        quantity: 1,
-        type: 'product'
-      });
+      addLineItem(buildProductLineItem(variant, variant.productTitle));
 
       document.getElementById('productSearch').value = '';
       document.getElementById('productResults').classList.remove('show');
     }
 
     function selectProduct(product) {
-      addLineItem({
-        variantId: product.variantId,
-        title: product.productTitle,
-        variantTitle: product.variantTitle !== 'Default Title' ? product.variantTitle : '',
-        price: parseFloat(product.price),
-        quantity: 1,
-        type: 'product'
-      });
+      addLineItem(buildProductLineItem(product, product.productTitle));
       
       document.getElementById('productSearch').value = '';
       document.getElementById('productResults').classList.remove('show');
@@ -1194,6 +1223,9 @@
     function addLineItem(item) {
       lineItems.push(item);
       renderLineItems();
+      if (item.type === 'product' && Number(item.inventoryQuantity) > 0) {
+        showInventoryWarning(`${item.title} shows ${item.inventoryQuantity} in stock. Confirm the shelf is empty before setting Shopify inventory to 0.`);
+      }
     }
 
     function removeLineItem(index) {
@@ -1225,12 +1257,32 @@
 
       list.innerHTML = lineItems.map((item, index) => {
         const itemTotal = item.price * item.quantity;
+        const inventoryQty = Number(item.inventoryQuantity) || 0;
+        const stockWarning = item.type === 'product' && inventoryQty > 0 && !item.inventoryConfirmedZero ? `
+          <div class="line-item-stock-warning">
+            Shopify shows ${inventoryQty} in stock. If you physically confirmed this is actually out of stock, update Shopify to 0.
+            <br>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="confirmZeroInventory(${index})"
+              ${item.inventoryZeroing ? 'disabled' : ''}
+            >
+              ${item.inventoryZeroing ? 'Updating inventory...' : 'Confirm 0 and update Shopify'}
+            </button>
+          </div>
+        ` : '';
+        const inventoryStatus = item.inventoryConfirmedZero ? `
+          <div class="line-item-status">Shopify inventory was set to 0 for this item.</div>
+        ` : '';
         return `
           <div class="line-item">
             <div class="line-item-info">
               <div class="line-item-title">${escapeHtml(item.title)}</div>
               ${item.variantTitle ? `<div class="line-item-subtitle">${escapeHtml(item.variantTitle)}</div>` : ''}
               ${item.type === 'custom' ? '<div class="line-item-subtitle">Custom Item</div>' : ''}
+              ${stockWarning}
+              ${inventoryStatus}
             </div>
             <input 
               type="number" 
@@ -1250,6 +1302,63 @@
       // Update total
       const total = lineItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       document.getElementById('totalAmount').textContent = `$${total.toFixed(2)}`;
+    }
+
+    function getOrderFormAuthToken() {
+      const savedToken = localStorage.getItem(REMEMBER_TOKEN_KEY);
+      if (savedToken) {
+        try {
+          const tokenData = JSON.parse(savedToken);
+          const expiryDate = new Date(tokenData.expiry);
+          if (expiryDate > new Date() && tokenData.hash) return tokenData.hash;
+        } catch (e) {
+          localStorage.removeItem(REMEMBER_TOKEN_KEY);
+        }
+      }
+      return btoa(ORDER_FORM_PASSWORD);
+    }
+
+    async function confirmZeroInventory(index) {
+      const item = lineItems[index];
+      if (!item || item.type !== 'product' || !item.variantId) return;
+
+      const confirmed = window.confirm(`Shopify shows ${item.inventoryQuantity} in stock for ${item.title}. Only continue if you physically checked and confirmed the item is actually out of stock.`);
+      if (!confirmed) return;
+
+      item.inventoryZeroing = true;
+      renderLineItems();
+
+      try {
+        const response = await fetch(`${WORKER_URL}/api/products/${encodeURIComponent(item.variantId)}/inventory-zero`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-order-form-auth': getOrderFormAuthToken()
+          },
+          body: JSON.stringify({ source: 'order-form' })
+        });
+
+        const result = await response.json();
+        if (!response.ok || !result.ok) {
+          const shopifyError = result.userErrors?.[0]?.message;
+          throw new Error(shopifyError || result.error || 'Failed to update Shopify inventory');
+        }
+
+        item.inventoryQuantity = 0;
+        item.inventoryConfirmedZero = true;
+        item.inventoryZeroing = false;
+        item.inventoryZeroedLocations = result.changedLocations || [];
+        renderLineItems();
+
+        const locationText = item.inventoryZeroedLocations.length
+          ? ` Updated ${item.inventoryZeroedLocations.map(location => location.locationName).join(', ')}.`
+          : ' Shopify already showed 0 available.';
+        showInventoryWarning(`${item.title} inventory is now confirmed at 0.${locationText}`);
+      } catch (error) {
+        item.inventoryZeroing = false;
+        renderLineItems();
+        showError(error.message);
+      }
     }
 
     // Custom Items
@@ -1481,9 +1590,23 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    function showInventoryWarning(message) {
+      const msg = document.getElementById('inventoryWarningMessage');
+      const text = document.getElementById('inventoryWarningText');
+      text.textContent = message;
+      msg.classList.add('show');
+
+      clearTimeout(inventoryWarningTimeout);
+      inventoryWarningTimeout = setTimeout(() => {
+        msg.classList.remove('show');
+      }, 9000);
+    }
+
     function hideMessages() {
       document.getElementById('successMessage').classList.remove('show');
       document.getElementById('errorMessage').classList.remove('show');
+      document.getElementById('inventoryWarningMessage').classList.remove('show');
+      clearTimeout(inventoryWarningTimeout);
     }
 
     function resetForm() {

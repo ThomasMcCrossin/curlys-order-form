@@ -17,8 +17,7 @@ export default {
     // === IP WHITELIST CHECK ===
     if (url.pathname === "/api/auth/check-ip" && request.method === "GET") {
       const clientIP = request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "unknown";
-      const whitelistedIPs = ["142.177.77.123"]; // Work IP
-      const isWhitelisted = whitelistedIPs.includes(clientIP);
+      const isWhitelisted = isWhitelistedIp(clientIP);
       return json({ whitelisted: isWhitelisted, ip: clientIP }, 200);
     }
 
@@ -238,6 +237,25 @@ export default {
 
         return json({ products: results }, 200);
       } catch (e) {
+        return json({ ok: false, error: e.message }, 500);
+      }
+    }
+
+    if (url.pathname.match(/^\/api\/products\/(\d+)\/inventory-zero$/) && request.method === "POST") {
+      try {
+        if (!(await hasStaffActionAccess(request, env))) {
+          return json({ ok: false, error: "Unauthorized" }, 403);
+        }
+
+        const match = url.pathname.match(/^\/api\/products\/(\d+)\/inventory-zero$/);
+        const variantId = parseVariantId(match?.[1]);
+        if (!variantId) return json({ ok: false, error: "Invalid variant id" }, 400);
+
+        const result = await setVariantAvailableInventoryToZero(env, variantId);
+        const status = result.ok ? 200 : result.status || 500;
+        return json(result, status);
+      } catch (e) {
+        console.error("Inventory zero error:", e);
         return json({ ok: false, error: e.message }, 500);
       }
     }
@@ -1008,7 +1026,7 @@ export default {
 function cors() {
   return {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "content-type,x-flow-secret",
+    "Access-Control-Allow-Headers": "content-type,x-flow-secret,x-order-form-auth",
     "Access-Control-Allow-Methods": "POST,OPTIONS,GET"
   };
 }
@@ -1018,6 +1036,37 @@ function json(obj, status=200) {
     status,
     headers: { "Content-Type": "application/json", ...cors() }
   });
+}
+
+function isWhitelistedIp(clientIP) {
+  const whitelistedIPs = ["142.177.77.123"]; // Work IP
+  return whitelistedIPs.includes(clientIP);
+}
+
+async function hasStaffActionAccess(request, env) {
+  const clientIP = request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "unknown";
+  if (isWhitelistedIp(clientIP)) return true;
+
+  const expected = String(env.ORDER_FORM_ACTION_TOKEN || "").trim();
+  const provided = String(request.headers.get("x-order-form-auth") || "").trim();
+  if (!expected || !provided) return false;
+
+  return timingSafeEqualStrings(provided, expected);
+}
+
+async function timingSafeEqualStrings(a, b) {
+  const encoder = new TextEncoder();
+  const [aHash, bHash] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(a)),
+    crypto.subtle.digest("SHA-256", encoder.encode(b))
+  ]);
+  const aBytes = new Uint8Array(aHash);
+  const bBytes = new Uint8Array(bHash);
+  let diff = aBytes.length ^ bBytes.length;
+  for (let i = 0; i < Math.max(aBytes.length, bBytes.length); i++) {
+    diff |= (aBytes[i % aBytes.length] || 0) ^ (bBytes[i % bBytes.length] || 0);
+  }
+  return diff === 0;
 }
 
 function legacyIdFromGid(gid) {
@@ -1546,6 +1595,167 @@ async function variantIdFromInventoryItemId(inventoryItemId, env) {
   `, { id: `gid://shopify/InventoryItem/${id}` });
 
   return data?.inventoryItem?.variant?.legacyResourceId || null;
+}
+
+function availableQuantityFromInventoryLevel(level) {
+  const available = (level?.quantities || []).find(q => q?.name === "available");
+  const quantity = Number(available?.quantity);
+  return Number.isFinite(quantity) ? quantity : 0;
+}
+
+async function getVariantInventorySnapshot(env, variantId) {
+  const id = parseVariantId(variantId);
+  if (!id) throw new Error("Invalid variant id");
+
+  const data = await shopifyGraphQL(env, `
+    query($id: ID!) {
+      productVariant(id: $id) {
+        legacyResourceId
+        displayName
+        inventoryQuantity
+        product {
+          title
+        }
+        inventoryItem {
+          id
+          legacyResourceId
+          tracked
+          inventoryLevels(first: 50) {
+            edges {
+              node {
+                location {
+                  id
+                  name
+                }
+                quantities(names: ["available"]) {
+                  name
+                  quantity
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `, { id: `gid://shopify/ProductVariant/${id}` });
+
+  const variant = data?.productVariant;
+  if (!variant) return null;
+
+  const inventoryLevels = (variant.inventoryItem?.inventoryLevels?.edges || [])
+    .map(edge => edge?.node)
+    .filter(Boolean)
+    .map(level => ({
+      locationId: level.location?.id || null,
+      locationName: level.location?.name || "Unknown location",
+      available: availableQuantityFromInventoryLevel(level)
+    }))
+    .filter(level => !!level.locationId);
+
+  return {
+    variantId: Number(variant.legacyResourceId || id),
+    productTitle: variant.product?.title || "Product",
+    variantTitle: normalizeVariantTitle(variant.displayName || ""),
+    inventoryQuantity: Number(variant.inventoryQuantity) || 0,
+    inventoryItemId: variant.inventoryItem?.id || null,
+    inventoryItemLegacyId: Number(variant.inventoryItem?.legacyResourceId) || null,
+    tracked: !!variant.inventoryItem?.tracked,
+    inventoryLevels
+  };
+}
+
+async function setVariantAvailableInventoryToZero(env, variantId) {
+  const snapshot = await getVariantInventorySnapshot(env, variantId);
+  if (!snapshot) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Variant not found"
+    };
+  }
+
+  if (!snapshot.inventoryItemId || !snapshot.tracked) {
+    return {
+      ok: false,
+      status: 400,
+      error: "This variant does not have tracked Shopify inventory",
+      variant: snapshot
+    };
+  }
+
+  const positiveLevels = snapshot.inventoryLevels.filter(level => level.available > 0);
+  if (!positiveLevels.length) {
+    return {
+      ok: true,
+      alreadyZero: true,
+      variant: snapshot,
+      changedLocations: []
+    };
+  }
+
+  const data = await shopifyGraphQL(env, `
+    mutation($input: InventorySetQuantitiesInput!) {
+      inventorySetQuantities(input: $input) {
+        inventoryAdjustmentGroup {
+          reason
+          changes {
+            name
+            delta
+            quantityAfterChange
+          }
+        }
+        userErrors {
+          field
+          message
+          code
+        }
+      }
+    }
+  `, {
+    input: {
+      name: "available",
+      reason: "correction",
+      referenceDocumentUri: `curlys-order-form://inventory-confirm-zero/${snapshot.variantId}/${Date.now()}`,
+      quantities: positiveLevels.map(level => ({
+        inventoryItemId: snapshot.inventoryItemId,
+        locationId: level.locationId,
+        quantity: 0,
+        compareQuantity: level.available
+      }))
+    }
+  });
+
+  const payload = data?.inventorySetQuantities;
+  const userErrors = payload?.userErrors || [];
+  if (userErrors.length) {
+    return {
+      ok: false,
+      status: 409,
+      error: "Shopify rejected the inventory update. Refresh the product search and try again.",
+      userErrors,
+      variant: snapshot
+    };
+  }
+
+  return {
+    ok: true,
+    alreadyZero: false,
+    variant: {
+      ...snapshot,
+      inventoryQuantity: 0,
+      inventoryLevels: snapshot.inventoryLevels.map(level => ({
+        ...level,
+        available: positiveLevels.some(positive => positive.locationId === level.locationId) ? 0 : level.available
+      }))
+    },
+    changedLocations: positiveLevels.map(level => ({
+      locationId: level.locationId,
+      locationName: level.locationName,
+      previousAvailable: level.available,
+      available: 0
+    })),
+    changes: payload?.inventoryAdjustmentGroup?.changes || []
+  };
 }
 
 async function findOrAttachCustomer(customerInput, env) {
