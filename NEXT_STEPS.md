@@ -31,7 +31,7 @@ wrangler deploy
 - Update `name` in `wrangler.toml` to match your existing worker, OR
 - Choose a different name
 
-The secrets (SHOPIFY_ADMIN_TOKEN, RESEND_API_KEY) are already configured in Cloudflare and will be preserved.
+The secrets (SHOPIFY_ADMIN_TOKEN, RESEND_API_KEY, FLOW_SHARED_SECRET) are already configured in Cloudflare and will be preserved.
 
 ### 2. Update HTML with Worker URL (1 minute)
 
@@ -103,7 +103,8 @@ These are already configured in your Cloudflare Worker (don't need to set them a
 | STAFF_EMAIL | dwayne@curlys.ca | Variable |
 | STAFF_NOTIFY_ALL | true | Variable |
 | AUTO_INVOICE_ON_STOCK | true | Variable |
-| FLOW_SHARED_SECRET | BrownsCornerCanteen | Variable |
+
+**Note:** `FLOW_SHARED_SECRET` is stored as a Cloudflare secret (not in Git).
 
 ## Troubleshooting
 

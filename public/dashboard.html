@@ -159,6 +159,13 @@
       transform: scale(0.98);
     }
 
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
     .btn-primary {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
@@ -199,6 +206,15 @@
 
     .btn-secondary:hover {
       background: #E2E8F0;
+    }
+
+    .btn-muted {
+      background: #4A5568;
+      color: #FFF;
+    }
+
+    .btn-muted:hover {
+      background: #2D3748;
     }
 
     .btn-danger {
@@ -368,6 +384,41 @@
     .status-ready {
       background: #C6F6D5;
       color: #276749;
+    }
+
+    .status-warning {
+      background: #FEEBC8;
+      color: #9C4221;
+    }
+
+    .status-critical {
+      background: #FED7D7;
+      color: #822727;
+    }
+
+    .reminder-chip {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .reminder-chip.active {
+      background: #E6FFFA;
+      color: #1A7F6A;
+    }
+
+    .reminder-chip.snoozed {
+      background: #EBF8FF;
+      color: #2B6CB0;
+    }
+
+    .reminder-chip.muted {
+      background: #EDF2F7;
+      color: #4A5568;
     }
 
     /* Items List */
@@ -616,9 +667,15 @@
       max-width: 500px;
       width: 100%;
       max-height: 90vh;
-      overflow-y: auto;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
       animation: modalSlideIn 0.3s;
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .modal.modal-wide {
+      max-width: 1100px;
     }
 
     @keyframes modalSlideIn {
@@ -640,6 +697,13 @@
 
     .modal-body {
       margin-bottom: 24px;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    .modal.modal-wide .modal-body {
+      max-height: calc(90vh - 170px);
+      padding-right: 6px;
     }
 
     .modal-actions {
@@ -833,6 +897,1064 @@
       font-size: 14px;
     }
   </style>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+    :root {
+      --bg-0: #edf2ed;
+      --bg-1: #d7e4dc;
+      --ink-900: #122021;
+      --ink-700: #294243;
+      --ink-500: #516c6d;
+      --line: #c9d7cf;
+      --panel: rgba(255, 255, 255, 0.92);
+      --panel-strong: #ffffff;
+      --accent: #0f766e;
+      --accent-deep: #0b5954;
+      --warning: #e68a0f;
+      --danger: #be3f3f;
+      --ok: #1f7a43;
+      --shadow-soft: 0 12px 40px rgba(13, 31, 32, 0.11);
+      --shadow-strong: 0 24px 60px rgba(13, 31, 32, 0.18);
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+    }
+
+    body {
+      font-family: "Manrope", "Segoe UI", sans-serif;
+      color: var(--ink-900);
+      background:
+        radial-gradient(circle at 15% 8%, rgba(15, 118, 110, 0.22), transparent 36%),
+        radial-gradient(circle at 90% 90%, rgba(230, 138, 15, 0.16), transparent 35%),
+        linear-gradient(145deg, var(--bg-0), var(--bg-1));
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(transparent 96%, rgba(18, 32, 33, 0.03) 96%),
+        linear-gradient(90deg, transparent 96%, rgba(18, 32, 33, 0.03) 96%);
+      background-size: 28px 28px;
+      opacity: 0.45;
+      z-index: -1;
+    }
+
+    .container {
+      max-width: 1520px;
+      padding: 26px;
+    }
+
+    .header {
+      background: var(--panel);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow: var(--shadow-soft);
+      border-radius: var(--radius-lg);
+      padding: 24px 26px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 22px;
+      margin-bottom: 20px;
+    }
+
+    .header-brand {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      min-width: 0;
+    }
+
+    h1 {
+      font-size: clamp(26px, 3vw, 34px);
+      line-height: 1.1;
+      margin-bottom: 8px;
+      color: #0e2425;
+      letter-spacing: -0.03em;
+    }
+
+    .header-subtitle {
+      color: var(--ink-500);
+      font-size: 14px;
+      max-width: 680px;
+    }
+
+    .logo {
+      border-radius: 14px;
+      background: linear-gradient(135deg, #0f766e, #0b5954);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+      flex-shrink: 0;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .density-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px;
+      border-radius: 999px;
+      border: 1px solid #d4e1da;
+      background: #edf4ef;
+    }
+
+    .density-btn {
+      border: 0;
+      background: transparent;
+      border-radius: 999px;
+      padding: 6px 11px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #436364;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .density-btn.active {
+      background: #fff;
+      color: #0c5e58;
+      box-shadow: 0 4px 12px rgba(13, 31, 32, 0.16);
+    }
+
+    .meta-pill {
+      background: rgba(15, 118, 110, 0.1);
+      border: 1px solid rgba(15, 118, 110, 0.18);
+      color: var(--accent-deep);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .metric-card {
+      background: var(--panel-strong);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-height: 95px;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgba(13, 31, 32, 0.12);
+      border-color: rgba(15, 118, 110, 0.4);
+    }
+
+    .metric-card.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.18), 0 10px 28px rgba(13, 31, 32, 0.12);
+    }
+
+    .metric-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-500);
+      font-weight: 800;
+    }
+
+    .metric-value {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 27px;
+      font-weight: 600;
+      color: var(--ink-900);
+      line-height: 1;
+    }
+
+    .metric-note {
+      font-size: 11px;
+      color: var(--ink-500);
+      line-height: 1.3;
+    }
+
+    .tabs {
+      background: #eff4f0;
+      border: 1px solid #d6e1da;
+      border-radius: var(--radius-md);
+      padding: 6px;
+      margin-bottom: 14px;
+      gap: 6px;
+    }
+
+    .tab {
+      border-radius: 10px;
+      color: #426161;
+      font-size: 15px;
+      font-weight: 700;
+      transition: all 0.2s ease;
+      padding: 12px 14px;
+    }
+
+    .tab:hover {
+      background: rgba(255, 255, 255, 0.8);
+      color: #234142;
+    }
+
+    .tab.active {
+      color: #073838;
+      background: #fff;
+      box-shadow: 0 6px 18px rgba(13, 31, 32, 0.12);
+    }
+
+    .tab-badge {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-left: 6px;
+      background: #ddeae3;
+      color: #204143;
+    }
+
+    .tab.active .tab-badge {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .toolbar {
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .search-shell {
+      flex: 1 1 360px;
+      min-width: 260px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid #d6e1da;
+      border-radius: 12px;
+      padding: 0 14px;
+      background: #fff;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    .search-icon {
+      font-size: 16px;
+      color: var(--ink-500);
+    }
+
+    .search-box {
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      height: 48px;
+      padding: 0;
+      min-width: 0;
+      font-size: 14px;
+      color: var(--ink-900);
+    }
+
+    .search-box:focus {
+      border: 0;
+      box-shadow: none;
+      outline: none;
+    }
+
+    .toolbar-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .toolbar-select {
+      height: 48px;
+      border-radius: 12px;
+      border: 1px solid #d6e1da;
+      padding: 0 14px;
+      background: #fff;
+      color: #214244;
+      font-size: 14px;
+      font-weight: 600;
+      min-width: 170px;
+      cursor: pointer;
+    }
+
+    .results-summary {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #3f5b5b;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .btn {
+      border-radius: 11px;
+      font-weight: 700;
+      font-size: 14px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0f766e, #0b5954);
+      color: white;
+      box-shadow: 0 10px 24px rgba(15, 118, 110, 0.34);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px rgba(15, 118, 110, 0.36);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #2a8c4f, #1f7a43);
+      box-shadow: 0 8px 20px rgba(27, 106, 57, 0.28);
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, #eb9b2d, #d57611);
+      box-shadow: 0 8px 20px rgba(167, 93, 20, 0.26);
+    }
+
+    .btn-secondary {
+      background: #edf4ef;
+      color: #294243;
+      border: 1px solid #d6e1da;
+    }
+
+    .btn-secondary:hover {
+      background: #e6efea;
+    }
+
+    .btn-muted {
+      background: #5a6768;
+      box-shadow: none;
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #d66a6a, #be3f3f);
+      box-shadow: 0 8px 20px rgba(159, 46, 46, 0.24);
+    }
+
+    .btn-icon {
+      font-size: 18px;
+      padding-inline: 14px;
+      min-width: 48px;
+      justify-content: center;
+    }
+
+    .orders-container {
+      margin-top: 20px;
+      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+      gap: 16px;
+    }
+
+    .order-card {
+      border: 1px solid #d2ddd6;
+      background: #ffffff;
+      box-shadow: 0 8px 30px rgba(13, 31, 32, 0.09);
+      border-radius: 16px;
+      padding: 20px 18px 16px;
+      transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+      animation: cardRise 0.38s ease both;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .order-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 34px rgba(13, 31, 32, 0.14);
+    }
+
+    .order-card.selected {
+      border-color: rgba(15, 118, 110, 0.7);
+      box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.2), 0 14px 30px rgba(13, 31, 32, 0.17);
+    }
+
+    .order-card.status-pending {
+      border-left: 5px solid #e19220;
+      background: linear-gradient(180deg, rgba(255, 252, 247, 0.95), rgba(255, 255, 255, 1));
+    }
+
+    .order-card.status-ready {
+      border-left: 5px solid #1f7a43;
+      background: linear-gradient(180deg, rgba(246, 255, 249, 0.95), rgba(255, 255, 255, 1));
+    }
+
+    .order-card.has-custom {
+      border-top: 4px solid #d57611;
+    }
+
+    .order-checkbox {
+      border-color: #b7c8bf;
+      width: 24px;
+      height: 24px;
+      top: 18px;
+      right: 18px;
+    }
+
+    .order-header {
+      margin-bottom: 0;
+      padding-right: 36px;
+    }
+
+    .order-info h3 {
+      font-size: 20px;
+      color: #112526;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .order-customer {
+      color: #2a4a4b;
+      font-weight: 600;
+    }
+
+    .order-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .meta-stat {
+      background: #f4f8f5;
+      border: 1px solid #e0e9e3;
+      border-radius: 10px;
+      padding: 9px 10px;
+      min-width: 0;
+    }
+
+    .meta-stat .label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #5c7677;
+      margin-bottom: 3px;
+      font-weight: 800;
+      display: block;
+    }
+
+    .meta-stat .value {
+      font-size: 12px;
+      color: #183032;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+      line-height: 1.35;
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 6px;
+    }
+
+    .status-badge {
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      padding: 7px 10px;
+      border-radius: 999px;
+      margin-top: 0;
+    }
+
+    .status-badge.status-pending {
+      background: #fff0d9;
+      color: #8f5209;
+    }
+
+    .status-badge.status-ready {
+      background: #def5e5;
+      color: #116936;
+    }
+
+    .status-badge.status-warning {
+      background: #ffe5bf;
+      color: #84450b;
+    }
+
+    .status-badge.status-critical {
+      background: #ffd8d8;
+      color: #8b2222;
+    }
+
+    .reminder-chip {
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: 0.03em;
+      margin-top: 0;
+      padding: 7px 11px;
+      font-weight: 800;
+    }
+
+    .reminder-chip.active {
+      background: #ddf6f0;
+      color: #0b6158;
+    }
+
+    .reminder-chip.snoozed {
+      background: #e4efff;
+      color: #184a97;
+    }
+
+    .reminder-chip.muted {
+      background: #eceff2;
+      color: #3f4c55;
+    }
+
+    .reminder-details {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #5d686a;
+      font-style: italic;
+    }
+
+    .items-list {
+      margin-bottom: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .item {
+      background: #f5f8f6;
+      border: 1px solid #e2ebe5;
+      padding: 11px 12px;
+      margin-bottom: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .item:hover {
+      background: #eef4f0;
+      border-color: #d2ddd6;
+    }
+
+    .item-details {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .item-title {
+      font-size: 14px;
+      margin-bottom: 0;
+      color: #152b2d;
+      line-height: 1.3;
+    }
+
+    .item-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .item-tag {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      border: 1px solid #d6e2dc;
+      background: #fdfefd;
+      color: #3e5d5f;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      padding: 3px 8px;
+      line-height: 1.25;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+
+    .item-variant,
+    .item-subtle {
+      font-size: 12px;
+      color: #557071;
+      line-height: 1.35;
+    }
+
+    .item-qty {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 16px;
+      padding: 5px 10px;
+      border: 1px solid #dce7df;
+      color: #1b3739;
+      min-width: 48px;
+      text-align: center;
+    }
+
+    .custom-badge {
+      box-shadow: none;
+      background: linear-gradient(135deg, #f0a13c, #d57611);
+    }
+
+    .inline-note {
+      background: #fff6e5;
+      border: 1px solid #f4ddb7;
+      border-left: 4px solid #e68a0f;
+      color: #6e4f1a;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .actions {
+      gap: 10px;
+      padding-top: 14px;
+      margin-top: 0;
+      border-top: 1px solid #dce8e1;
+    }
+
+    .action-row {
+      gap: 8px;
+    }
+
+    .action-row-primary .btn {
+      min-height: 44px;
+      font-size: 13px;
+      box-shadow: none;
+    }
+
+    .action-row .btn {
+      min-height: 42px;
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    .action-row .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .secondary-actions,
+    .reminder-panel {
+      border: 1px solid #dbe6df;
+      border-radius: 10px;
+      background: #f7faf8;
+      overflow: hidden;
+    }
+
+    .secondary-actions summary,
+    .reminder-panel summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #2f4f51;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+
+    .secondary-actions summary::-webkit-details-marker,
+    .reminder-panel summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .secondary-actions summary::after,
+    .reminder-panel summary::after {
+      content: "▾";
+      color: #5c7677;
+      transition: transform 0.2s ease;
+      font-size: 12px;
+      margin-left: 8px;
+    }
+
+    .secondary-actions[open] summary::after,
+    .reminder-panel[open] summary::after {
+      transform: rotate(180deg);
+    }
+
+    .secondary-actions[open],
+    .reminder-panel[open] {
+      background: #f2f7f4;
+      border-color: #d1dfd8;
+    }
+
+    .secondary-actions-panel {
+      padding: 0 10px 10px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .reminder-panel-grid {
+      padding: 0 10px 10px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .reminder-inline .btn {
+      width: 100%;
+    }
+
+    body.density-compact .orders-container {
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 11px;
+    }
+
+    body.density-compact .order-card {
+      padding: 14px 13px 12px;
+      gap: 10px;
+    }
+
+    body.density-compact .order-meta-grid {
+      gap: 7px;
+      margin-bottom: 10px;
+    }
+
+    body.density-compact .meta-stat {
+      padding: 6px 8px;
+    }
+
+    body.density-compact .item {
+      padding: 8px 9px;
+    }
+
+    body.density-compact .item-tag {
+      font-size: 10px;
+      padding: 2px 7px;
+    }
+
+    body.density-compact .actions {
+      gap: 8px;
+      padding-top: 10px;
+    }
+
+    body.density-compact .action-row .btn {
+      min-height: 37px;
+      font-size: 12px;
+      padding: 8px 9px;
+    }
+
+    .loading,
+    .empty {
+      border: 1px solid #d2ddd6;
+      box-shadow: var(--shadow-soft);
+      background: rgba(255, 255, 255, 0.92);
+    }
+
+    .toast {
+      border-radius: 12px;
+      border: 1px solid #d3dfd8;
+      background: rgba(255, 255, 255, 0.97);
+    }
+
+    .bulk-actions-bar {
+      border: 1px solid #d4e0d9;
+      padding: 16px 22px;
+      border-radius: 14px;
+      box-shadow: var(--shadow-strong);
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(8px);
+      max-width: calc(100vw - 20px);
+      flex-wrap: wrap;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(-50%) translateY(calc(100% + 40px));
+    }
+
+    .bulk-actions-bar.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .bulk-count {
+      color: #173234;
+    }
+
+    .shortcuts-help {
+      background: rgba(14, 36, 37, 0.88);
+      border: 1px solid rgba(224, 255, 250, 0.15);
+    }
+
+    .modal {
+      border: 1px solid #d8e4dd;
+      box-shadow: var(--shadow-strong);
+    }
+
+    .modal.modal-wide {
+      max-width: min(1120px, 96vw);
+    }
+
+    .supplier-queue-shell {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .supplier-queue-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .supplier-queue-meta {
+      margin: 0;
+      font-size: 13px;
+      color: #3e5859;
+      line-height: 1.45;
+    }
+
+    .supplier-queue-meta p {
+      margin: 0 0 4px;
+    }
+
+    .supplier-queue-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 12px;
+    }
+
+    .supplier-bucket {
+      border: 1px solid #d7e3dc;
+      border-radius: 12px;
+      background: #fff;
+      padding: 14px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    .supplier-bucket h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      color: #143234;
+    }
+
+    .supplier-bucket-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .supplier-stat-pill {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #2b4d4f;
+      border: 1px solid #d9e6df;
+      background: #f4f8f5;
+      border-radius: 999px;
+      padding: 5px 8px;
+    }
+
+    .supplier-table-shell {
+      border: 1px solid #dce8e1;
+      border-radius: 10px;
+      overflow: auto;
+      background: #fbfdfb;
+    }
+
+    .supplier-table {
+      width: 100%;
+      min-width: 620px;
+      border-collapse: collapse;
+      font-size: 12px;
+      color: #1f3a3b;
+    }
+
+    .supplier-table th {
+      text-align: left;
+      padding: 8px;
+      background: #eef4f0;
+      border-bottom: 1px solid #dce8e1;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #4a6667;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .supplier-table td {
+      padding: 8px;
+      border-bottom: 1px solid #e7efea;
+      vertical-align: top;
+    }
+
+    .supplier-table tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .supplier-item-name {
+      font-weight: 700;
+      color: #112728;
+      margin-bottom: 2px;
+      line-height: 1.3;
+    }
+
+    .supplier-item-meta {
+      font-size: 11px;
+      color: #5d7778;
+      line-height: 1.35;
+    }
+
+    .stocky-pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+
+    .stocky-pill.on {
+      background: #ddf6e6;
+      color: #156536;
+      border-color: #bfe8cd;
+    }
+
+    .stocky-pill.off {
+      background: #fff1f1;
+      color: #8f2c2c;
+      border-color: #f3cccc;
+    }
+
+    .supplier-stocky-meta {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #4f6668;
+    }
+
+    .login-container {
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.82);
+      box-shadow: var(--shadow-strong);
+    }
+
+    .undo-notification {
+      background: #183032;
+      border: 1px solid rgba(195, 228, 226, 0.2);
+    }
+
+    @media (max-width: 1140px) {
+      .header-top {
+        flex-direction: column;
+      }
+
+      .header-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .toolbar {
+        flex-direction: column;
+      }
+
+      .toolbar-controls {
+        width: 100%;
+      }
+
+      .toolbar-select {
+        flex: 1;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .container {
+        padding: 14px;
+      }
+
+      .header {
+        padding: 16px;
+      }
+
+      .header-brand {
+        align-items: center;
+      }
+
+      .summary-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .orders-container {
+        grid-template-columns: 1fr;
+      }
+
+      .order-meta-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .action-row {
+        flex-direction: column;
+      }
+
+      .secondary-actions-panel,
+      .reminder-panel-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .shortcuts-help {
+        display: none;
+      }
+
+      .supplier-queue-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .supplier-table {
+        min-width: 540px;
+      }
+    }
+
+    @keyframes cardRise {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
 </head>
 <body>
   <!-- Toast Container -->
@@ -864,18 +1986,66 @@
       <!-- Header -->
       <div class="header">
         <div class="header-top">
-          <h1>
+          <div class="header-brand">
             <div class="logo">🏋️</div>
-            Order Dashboard
-          </h1>
+            <div>
+              <h1>Inventory Follow-Up Dashboard</h1>
+              <p class="header-subtitle">Prioritize aging requests, silence known "won't get" items, and keep pickup communications moving.</p>
+            </div>
+          </div>
           <div class="header-actions">
+            <span class="meta-pill" id="lastUpdatedLabel">Last sync: --</span>
+            <span class="meta-pill" id="purchaseScanLabel">Purchase scan: --</span>
+            <div class="density-toggle" role="group" aria-label="Card density">
+              <button type="button" class="density-btn active" data-density="comfortable" onclick="setDensity('comfortable')" title="More spacing for readability">Comfortable</button>
+              <button type="button" class="density-btn" data-density="compact" onclick="setDensity('compact')" title="Fit more cards on screen">Compact</button>
+            </div>
+            <button class="btn btn-secondary" id="supplierQueueBtn" onclick="showSupplierQueue()" title="View grouped supplier purchasing queue">
+              🧾 Supplier Queue
+            </button>
+            <button class="btn btn-secondary" id="scanPurchasesBtn" onclick="scanPurchasedOrders()" title="Scan for customer purchases and hard-delete matching request drafts">
+              🔎 Scan Purchases
+            </button>
             <button class="btn btn-secondary btn-icon" onclick="printOrders()" title="Print Orders (Ctrl+P)">
               🖨️
             </button>
-            <button class="btn btn-primary" onclick="loadOrders()" title="Refresh (F5)">
+            <button class="btn btn-primary" onclick="loadOrders({ notify: true })" title="Refresh (F5)">
               ↻ Refresh
             </button>
           </div>
+        </div>
+
+        <div class="summary-strip">
+          <button class="metric-card active" data-focus-filter="all" onclick="setFocusFilter('all')">
+            <span class="metric-label">All visible</span>
+            <span class="metric-value" id="metricAll">0</span>
+            <span class="metric-note">every order request</span>
+          </button>
+          <button class="metric-card" data-focus-filter="attention" onclick="setFocusFilter('attention')">
+            <span class="metric-label">Needs attention</span>
+            <span class="metric-value" id="metricAttention">0</span>
+            <span class="metric-note">pending 7d+ with reminders active</span>
+          </button>
+          <button class="metric-card" data-focus-filter="critical" onclick="setFocusFilter('critical')">
+            <span class="metric-label">Critical aging</span>
+            <span class="metric-value" id="metricCritical">0</span>
+            <span class="metric-note">pending 14d+ with reminders active</span>
+          </button>
+          <button class="metric-card" data-focus-filter="snoozed" onclick="setFocusFilter('snoozed')">
+            <span class="metric-label">Snoozed</span>
+            <span class="metric-value" id="metricSnoozed">0</span>
+            <span class="metric-note">temporarily paused reminders</span>
+          </button>
+          <button class="metric-card" data-focus-filter="muted" onclick="setFocusFilter('muted')">
+            <span class="metric-label">Won't get (muted)</span>
+            <span class="metric-value" id="metricMuted">0</span>
+            <span class="metric-note">silenced from reminder emails</span>
+          </button>
+          <button class="metric-card" data-focus-filter="custom" onclick="setFocusFilter('custom')">
+            <span class="metric-label">Custom lines</span>
+            <span class="metric-value" id="metricCustom">0</span>
+            <span class="metric-note">orders with custom items</span>
+          </button>
         </div>
 
         <!-- Tabs -->
@@ -900,14 +2070,35 @@
 
         <!-- Toolbar -->
         <div class="toolbar">
-          <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search by name, email, or phone..." onkeyup="filterOrders()">
-          <button class="btn btn-secondary" onclick="selectAll()">
-            Select All
-          </button>
-          <button class="btn btn-secondary" onclick="clearSelection()">
-            Clear Selection
-          </button>
+          <div class="search-shell">
+            <span class="search-icon">⌕</span>
+            <input type="text" class="search-box" id="searchBox" placeholder="Search name, item, vendor, email, phone, SKU..." onkeyup="filterOrders()">
+          </div>
+          <div class="toolbar-controls">
+            <select id="focusFilterSelect" class="toolbar-select" onchange="setFocusFilter(this.value)">
+              <option value="all">Focus: All Orders</option>
+              <option value="attention">Focus: Needs Attention</option>
+              <option value="critical">Focus: Critical Aging</option>
+              <option value="snoozed">Focus: Snoozed Reminders</option>
+              <option value="muted">Focus: Won't Get (Muted)</option>
+              <option value="custom">Focus: Custom Items</option>
+              <option value="active-reminders">Focus: Reminder Active</option>
+            </select>
+            <select id="sortBySelect" class="toolbar-select" onchange="setSortBy(this.value)">
+              <option value="attention">Sort: Attention Priority</option>
+              <option value="oldest">Sort: Oldest First</option>
+              <option value="newest">Sort: Newest First</option>
+              <option value="customer">Sort: Customer Name</option>
+            </select>
+            <button class="btn btn-secondary" onclick="selectAll()">
+              Select All
+            </button>
+            <button class="btn btn-secondary" onclick="clearSelection()">
+              Clear Selection
+            </button>
+          </div>
         </div>
+        <div class="results-summary" id="resultsSummary">Showing 0 orders</div>
       </div>
 
       <!-- Loading State -->
@@ -921,7 +2112,7 @@
         <div class="empty-icon">📦</div>
         <h2>No Orders Found</h2>
         <p>There are no orders matching your current filter.</p>
-        <button class="btn btn-primary" onclick="switchTab('all')">View All Orders</button>
+        <button class="btn btn-primary" onclick="switchTab('all'); setFocusFilter('all')">View All Orders</button>
       </div>
 
       <!-- Orders Container -->
@@ -937,6 +2128,9 @@
       </button>
       <button class="btn btn-warning" onclick="bulkEmail()">
         ✉️ Email All
+      </button>
+      <button class="btn btn-danger" onclick="bulkComplete()">
+        ✓ Complete (Delete)
       </button>
       <button class="btn btn-secondary" onclick="clearSelection()">
         Cancel
@@ -954,11 +2148,28 @@
     const DASHBOARD_PASSWORD = '6968';
     const REMEMBER_TOKEN_KEY = 'curlys_dashboard_auth';
     const REMEMBER_TOKEN_EXPIRY_DAYS = 30;
+    const DENSITY_STORAGE_KEY = 'curlys_dashboard_density';
 
     let orders = [];
     let currentTab = 'pending';
+    let focusFilter = 'all';
+    let sortBy = 'attention';
+    let lastSyncAt = null;
+    let lastPurchaseScanAt = null;
+    let lastPurchaseScanSummary = null;
+    let lastSupplierQueue = null;
     let selectedOrderIds = new Set();
     let undoStack = [];
+    let uiDensity = 'comfortable';
+
+    try {
+      const savedDensity = localStorage.getItem(DENSITY_STORAGE_KEY);
+      if (savedDensity === 'compact' || savedDensity === 'comfortable') {
+        uiDensity = savedDensity;
+      }
+    } catch (error) {
+      console.warn('Density preference unavailable:', error);
+    }
 
     // ========== AUTHENTICATION ==========
     async function checkAuth() {
@@ -1028,10 +2239,40 @@
     function showDashboard() {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
+      applyDensityMode();
       loadOrders();
+      updateLastSyncLabel();
+      updatePurchaseScanLabel();
     }
 
-    window.addEventListener('DOMContentLoaded', checkAuth);
+    function applyDensityMode() {
+      const compact = uiDensity === 'compact';
+      document.body.classList.toggle('density-compact', compact);
+
+      document.querySelectorAll('.density-btn').forEach(button => {
+        button.classList.toggle('active', button.dataset.density === uiDensity);
+      });
+    }
+
+    function setDensity(mode) {
+      const normalized = mode === 'compact' ? 'compact' : 'comfortable';
+      if (normalized === uiDensity) return;
+      uiDensity = normalized;
+
+      try {
+        localStorage.setItem(DENSITY_STORAGE_KEY, uiDensity);
+      } catch (error) {
+        console.warn('Unable to persist density preference:', error);
+      }
+
+      applyDensityMode();
+      showToast(`Layout set to ${uiDensity}`, 'info');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      applyDensityMode();
+      checkAuth();
+    });
 
     // ========== TOAST NOTIFICATIONS ==========
     function showToast(message, type = 'info') {
@@ -1061,7 +2302,226 @@
     }
 
     // ========== DATA LOADING ==========
-    async function loadOrders() {
+    async function showSupplierQueue() {
+      const button = document.getElementById('supplierQueueBtn');
+      if (button?.disabled) return;
+
+      if (button && !button.dataset.defaultLabel) {
+        button.dataset.defaultLabel = button.textContent.trim();
+      }
+
+      try {
+        if (button) {
+          button.disabled = true;
+          button.textContent = '⏳ Loading...';
+        }
+
+        const response = await fetch(`${WORKER_URL}/api/dashboard/supplier-queue`);
+        const result = await response.json().catch(() => ({
+          ok: false,
+          error: `Unexpected response (${response.status})`
+        }));
+
+        if (!response.ok || !result.ok) {
+          throw new Error(result.error || `Failed to load supplier queue (${response.status})`);
+        }
+
+        lastSupplierQueue = result;
+        const suppliers = Array.isArray(result.suppliers) ? result.suppliers : [];
+        if (!suppliers.length) {
+          showInfoModal('Supplier Queue', '<p>No pending supplier queue items right now.</p>');
+          return;
+        }
+
+        const sections = suppliers.map(supplier => {
+          const supplierItems = Array.isArray(supplier.items) ? supplier.items.slice(0, 120) : [];
+          const onStockyCount = supplierItems.filter(item => item.stockyOrdered).length;
+          const rows = supplierItems.map(item => {
+            const requestHints = [];
+            if (Array.isArray(item.customers) && item.customers.length) {
+              const previewCustomers = item.customers.slice(0, 2).map(name => escapeHtml(name)).join(', ');
+              const extraCustomers = item.customers.length > 2 ? ` +${item.customers.length - 2} more` : '';
+              requestHints.push(`Customers: ${previewCustomers}${extraCustomers}`);
+            }
+            if (Array.isArray(item.draftNames) && item.draftNames.length) {
+              const previewDrafts = item.draftNames.slice(0, 2).map(name => escapeHtml(name)).join(', ');
+              const extraDrafts = item.draftNames.length > 2 ? ` +${item.draftNames.length - 2} more` : '';
+              requestHints.push(`Requests: ${previewDrafts}${extraDrafts}`);
+            }
+
+            const stockyStatus = item.stockyOrdered
+              ? `
+                <span class="stocky-pill on">PO #${escapeHtml(String(item.stockyPurchaseOrderNumber || '?'))}</span>
+                <div class="supplier-stocky-meta">
+                  ${escapeHtml(item.stockyPurchaseItemStatus || 'ordered')}${item.stockyExpectedOn ? ` • ETA ${escapeHtml(formatShortDate(item.stockyExpectedOn))}` : ''}
+                </div>
+              `
+              : '<span class="stocky-pill off">Not on PO</span>';
+
+            return `
+              <tr>
+                <td>
+                  <div class="supplier-item-name">${escapeHtml(item.title || 'Item')}</div>
+                  <div class="supplier-item-meta">${item.variant ? escapeHtml(item.variant) : 'Default variant'}</div>
+                  ${requestHints.length ? `<div class="supplier-item-meta">${requestHints.join(' • ')}</div>` : ''}
+                </td>
+                <td>${escapeHtml(item.sku || '—')}</td>
+                <td style="text-align:center;">${Number(item.requestedQty || 0)}</td>
+                <td style="text-align:center;">${Number(item.requestCount || 0)}</td>
+                <td>${stockyStatus}</td>
+              </tr>
+            `;
+          }).join('');
+
+          return `
+            <section class="supplier-bucket">
+              <h3>${escapeHtml(supplier.supplierName || 'Supplier')}</h3>
+              <div class="supplier-bucket-stats">
+                <span class="supplier-stat-pill">${Number(supplier.totalRequestedQty || 0)} units</span>
+                <span class="supplier-stat-pill">${Number(supplier.itemCount || 0)} items</span>
+                <span class="supplier-stat-pill">${Number(supplier.draftCount || 0)} requests</span>
+                <span class="supplier-stat-pill">${onStockyCount} on Stocky PO</span>
+              </div>
+              <div class="supplier-table-shell">
+                <table class="supplier-table">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>SKU</th>
+                      <th style="text-align:center;">Qty</th>
+                      <th style="text-align:center;">Req</th>
+                      <th>Stocky</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rows}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          `;
+        }).join('');
+
+        const generatedAt = result.generatedAt ? new Date(result.generatedAt).toLocaleString('en-US') : 'unknown';
+        const content = `
+          <div class="supplier-queue-shell">
+            <div class="supplier-queue-top">
+              <div class="supplier-queue-meta">
+                <p><strong>Generated:</strong> ${escapeHtml(generatedAt)}</p>
+                <p><strong>Suppliers:</strong> ${suppliers.length} • <strong>Pending drafts:</strong> ${Number(result.pendingDraftCount || 0)}</p>
+              </div>
+              <button class="btn btn-secondary" onclick="downloadSupplierQueueCsv()">⬇ Export CSV</button>
+            </div>
+            <div class="supplier-queue-grid">
+              ${sections}
+            </div>
+          </div>
+        `;
+
+        showInfoModal('Supplier Queue', content, { modalClass: 'modal-wide supplier-queue-modal' });
+      } catch (error) {
+        showToast(`Supplier queue failed: ${error.message}`, 'error');
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.textContent = button.dataset.defaultLabel || '🧾 Supplier Queue';
+        }
+      }
+    }
+
+    function downloadSupplierQueueCsv() {
+      if (!lastSupplierQueue || !Array.isArray(lastSupplierQueue.suppliers)) {
+        showToast('Load supplier queue first', 'error');
+        return;
+      }
+
+      const rows = [['Supplier', 'Item', 'Variant', 'SKU', 'Requested Qty', 'Request Count', 'On Stocky PO', 'PO Number', 'PO Status']];
+      lastSupplierQueue.suppliers.forEach(supplier => {
+        (supplier.items || []).forEach(item => {
+          rows.push([
+            supplier.supplierName || '',
+            item.title || '',
+            item.variant || '',
+            item.sku || '',
+            String(item.requestedQty || 0),
+            String(item.requestCount || 0),
+            item.stockyOrdered ? 'yes' : 'no',
+            item.stockyPurchaseOrderNumber || '',
+            item.stockyPurchaseItemStatus || ''
+          ]);
+        });
+      });
+
+      const csv = rows.map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+      link.href = URL.createObjectURL(blob);
+      link.download = `supplier-queue-${timestamp}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(link.href);
+    }
+
+    async function scanPurchasedOrders() {
+      const button = document.getElementById('scanPurchasesBtn');
+      if (button?.disabled) return;
+
+      if (button && !button.dataset.defaultLabel) {
+        button.dataset.defaultLabel = button.textContent.trim();
+      }
+
+      try {
+        if (button) {
+          button.disabled = true;
+          button.textContent = '⏳ Scanning...';
+        }
+
+        const response = await fetch(`${WORKER_URL}/api/dashboard/reconcile-purchases`, {
+          method: 'POST'
+        });
+        const result = await response.json().catch(() => ({
+          ok: false,
+          error: `Unexpected response (${response.status})`
+        }));
+
+        if (!response.ok || !result.ok) {
+          throw new Error(result.error || `Failed to reconcile purchases (${response.status})`);
+        }
+
+        lastPurchaseScanAt = new Date();
+        lastPurchaseScanSummary = result;
+        updatePurchaseScanLabel();
+
+        const scanned = Number(result.scannedDrafts || 0);
+        const matched = Number(result.matchedDrafts || 0);
+        const deleted = Number((result.deletedDrafts ?? result.resolvedDrafts) || 0);
+        const errors = Number(result.errorCount || 0);
+
+        if (deleted > 0) {
+          showToast(`Purchase scan: deleted ${deleted} draft request(s) (${matched} matched, ${scanned} scanned)`, 'success');
+        } else {
+          showToast(`Purchase scan complete: no matches deleted (${scanned} scanned)`, 'info');
+        }
+
+        if (errors > 0) {
+          showToast(`Purchase scan finished with ${errors} error(s).`, 'error');
+        }
+
+        await loadOrders();
+      } catch (error) {
+        showToast(`Purchase scan failed: ${error.message}`, 'error');
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.textContent = button.dataset.defaultLabel || '🔎 Scan Purchases';
+        }
+      }
+    }
+
+    async function loadOrders(options = {}) {
+      const notify = !!options.notify;
       const loading = document.getElementById('loading');
       const empty = document.getElementById('emptyState');
       const container = document.getElementById('ordersContainer');
@@ -1075,19 +2535,23 @@
         const data = await response.json();
 
         orders = data.orders || [];
+        lastSyncAt = new Date();
         selectedOrderIds.clear();
         updateBulkActionsBar();
+        updateTabCounts();
+        updateLastSyncLabel();
 
         if (orders.length === 0) {
           loading.style.display = 'none';
           empty.style.display = 'block';
         } else {
           loading.style.display = 'none';
-          updateTabCounts();
           renderOrders();
         }
 
-        showToast('Orders refreshed successfully', 'success');
+        if (notify) {
+          showToast('Orders refreshed successfully', 'success');
+        }
       } catch (error) {
         console.error('Error loading orders:', error);
         loading.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><h2>Error Loading Orders</h2><p>Please check your connection and try again.</p></div>';
@@ -1113,11 +2577,175 @@
       const pending = orders.filter(o => o.status === 'pending').length;
       const ready = orders.filter(o => o.status === 'ready').length;
       const custom = orders.filter(o => o.items.some(item => item.isCustom)).length;
+      const muted = orders.filter(o => o.reminderMuted).length;
+      const snoozed = orders.filter(o => !o.reminderMuted && !!o.reminderSnoozedUntil).length;
+      const attention = orders.filter(o =>
+        o.status === 'pending' &&
+        !o.reminderSuppressed &&
+        (o.urgency === 'warning' || o.urgency === 'critical')
+      ).length;
+      const critical = orders.filter(o =>
+        o.status === 'pending' &&
+        !o.reminderSuppressed &&
+        o.urgency === 'critical'
+      ).length;
 
       document.getElementById('pendingCount').textContent = pending;
       document.getElementById('readyCount').textContent = ready;
       document.getElementById('customCount').textContent = custom;
       document.getElementById('allCount').textContent = orders.length;
+      document.getElementById('metricAll').textContent = orders.length;
+      document.getElementById('metricAttention').textContent = attention;
+      document.getElementById('metricCritical').textContent = critical;
+      document.getElementById('metricSnoozed').textContent = snoozed;
+      document.getElementById('metricMuted').textContent = muted;
+      document.getElementById('metricCustom').textContent = custom;
+      updateFocusControls();
+    }
+
+    function setFocusFilter(filter) {
+      focusFilter = filter || 'all';
+      updateFocusControls();
+      renderOrders();
+    }
+
+    function setSortBy(value) {
+      sortBy = value || 'attention';
+      const sortSelect = document.getElementById('sortBySelect');
+      if (sortSelect && sortSelect.value !== sortBy) {
+        sortSelect.value = sortBy;
+      }
+      renderOrders();
+    }
+
+    function updateFocusControls() {
+      const focusSelect = document.getElementById('focusFilterSelect');
+      if (focusSelect && focusSelect.value !== focusFilter) {
+        focusSelect.value = focusFilter;
+      }
+
+      document.querySelectorAll('.metric-card[data-focus-filter]').forEach(card => {
+        card.classList.toggle('active', card.dataset.focusFilter === focusFilter);
+      });
+    }
+
+    function matchesTab(order) {
+      if (currentTab === 'pending') return order.status === 'pending';
+      if (currentTab === 'ready') return order.status === 'ready';
+      if (currentTab === 'custom') return order.items.some(item => item.isCustom);
+      return true;
+    }
+
+    function matchesFocusFilter(order) {
+      if (focusFilter === 'all') return true;
+      if (focusFilter === 'attention') {
+        return order.status === 'pending' &&
+          !order.reminderSuppressed &&
+          (order.urgency === 'warning' || order.urgency === 'critical');
+      }
+      if (focusFilter === 'critical') {
+        return order.status === 'pending' &&
+          !order.reminderSuppressed &&
+          order.urgency === 'critical';
+      }
+      if (focusFilter === 'snoozed') {
+        return !order.reminderMuted && !!order.reminderSnoozedUntil;
+      }
+      if (focusFilter === 'muted') {
+        return !!order.reminderMuted;
+      }
+      if (focusFilter === 'custom') {
+        return order.items.some(item => item.isCustom);
+      }
+      if (focusFilter === 'active-reminders') {
+        return order.status === 'pending' && !order.reminderSuppressed;
+      }
+      return true;
+    }
+
+    function orderMatchesSearch(order, term) {
+      if (!term) return true;
+      const normalizedPhone = (order.customerPhone || '').replace(/\D+/g, '');
+      const phoneTerm = term.replace(/\D+/g, '');
+      const itemText = (order.items || []).map(item => [
+        item.title || '',
+        item.variant || '',
+        item.vendor || '',
+        item.sku || '',
+        item.supplierName || '',
+        item.stockyPurchaseOrderNumber || '',
+        item.stockyPurchaseItemStatus || ''
+      ].join(' ')).join(' ');
+
+      return (
+        (order.name || '').toLowerCase().includes(term) ||
+        (order.customerName || '').toLowerCase().includes(term) ||
+        (order.customerEmail || '').toLowerCase().includes(term) ||
+        (phoneTerm ? normalizedPhone.includes(phoneTerm) : false) ||
+        itemText.toLowerCase().includes(term)
+      );
+    }
+
+    function getAttentionWeight(order) {
+      if (order.status === 'ready') return -50;
+      let score = 0;
+      if (order.urgency === 'critical') score += 300;
+      else if (order.urgency === 'warning') score += 160;
+      else score += 80;
+
+      if (order.reminderMuted) score -= 120;
+      else if (order.reminderSnoozedUntil) score -= 60;
+      else score += 35;
+
+      score += Math.min(order.ageDays || 0, 60);
+      if ((order.items || []).some(item => item.isCustom)) score += 8;
+      return score;
+    }
+
+    function sortOrders(list) {
+      const sorted = [...list];
+      if (sortBy === 'oldest') {
+        sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        return sorted;
+      }
+      if (sortBy === 'newest') {
+        sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        return sorted;
+      }
+      if (sortBy === 'customer') {
+        sorted.sort((a, b) => (a.customerName || '').localeCompare(b.customerName || ''));
+        return sorted;
+      }
+
+      sorted.sort((a, b) => {
+        const scoreDiff = getAttentionWeight(b) - getAttentionWeight(a);
+        if (scoreDiff !== 0) return scoreDiff;
+        return new Date(a.createdAt) - new Date(b.createdAt);
+      });
+      return sorted;
+    }
+
+    function updateResultsSummary(visibleCount) {
+      const summary = document.getElementById('resultsSummary');
+      if (!summary) return;
+
+      const tabLabels = {
+        pending: 'Pending',
+        ready: 'Ready',
+        custom: 'Custom',
+        all: 'All'
+      };
+      const focusLabels = {
+        all: 'All',
+        attention: 'Needs Attention',
+        critical: 'Critical',
+        snoozed: 'Snoozed',
+        muted: "Won't Get",
+        custom: 'Custom',
+        'active-reminders': 'Reminder Active'
+      };
+
+      summary.textContent = `Showing ${visibleCount} of ${orders.length} orders • Tab: ${tabLabels[currentTab] || 'All'} • Focus: ${focusLabels[focusFilter] || 'All'}`;
     }
 
     // ========== RENDERING ==========
@@ -1125,27 +2753,13 @@
       const container = document.getElementById('ordersContainer');
       const searchTerm = document.getElementById('searchBox').value.toLowerCase();
       const empty = document.getElementById('emptyState');
+      let filtered = orders
+        .filter(matchesTab)
+        .filter(matchesFocusFilter)
+        .filter(order => orderMatchesSearch(order, searchTerm));
+      filtered = sortOrders(filtered);
 
-      let filtered = orders;
-
-      // Apply tab filter
-      if (currentTab === 'pending') {
-        filtered = filtered.filter(order => order.status === 'pending');
-      } else if (currentTab === 'ready') {
-        filtered = filtered.filter(order => order.status === 'ready');
-      } else if (currentTab === 'custom') {
-        filtered = filtered.filter(order => order.items.some(item => item.isCustom));
-      }
-
-      // Apply search
-      if (searchTerm) {
-        filtered = filtered.filter(order =>
-          order.name.toLowerCase().includes(searchTerm) ||
-          order.customerName.toLowerCase().includes(searchTerm) ||
-          order.customerEmail.toLowerCase().includes(searchTerm) ||
-          (order.customerPhone && order.customerPhone.includes(searchTerm))
-        );
-      }
+      updateResultsSummary(filtered.length);
 
       if (filtered.length === 0) {
         container.innerHTML = '';
@@ -1158,6 +2772,13 @@
       container.innerHTML = filtered.map(order => {
         const isSelected = selectedOrderIds.has(order.id);
         const hasCustom = order.items.some(item => item.isCustom);
+        const urgencyBadge = getUrgencyBadge(order);
+        const reminderChip = getReminderChip(order);
+        const reminderDetails = getReminderDetails(order);
+        const reminderActions = getReminderActions(order);
+        const emailDisabled = !order.customerEmail ? 'disabled title="No customer email on file"' : '';
+        const readyDisabled = order.status === 'ready' ? 'disabled title="Already marked ready"' : '';
+        const readyLabel = order.status === 'ready' ? '✓ Already Ready' : '✓ Items Arrived';
 
         return `
           <div class="order-card status-${order.status} ${hasCustom ? 'has-custom' : ''} ${isSelected ? 'selected' : ''}" data-order-id="${order.id}">
@@ -1165,60 +2786,168 @@
 
             <div class="order-header">
               <div class="order-info">
-                <h3>${escapeHtml(order.name)} - ${escapeHtml(order.customerName)}</h3>
-                <div class="order-meta">
-                  <strong>📧 Email:</strong> ${escapeHtml(order.customerEmail || 'N/A')}<br>
-                  <strong>📱 Phone:</strong> ${escapeHtml(order.customerPhone || 'N/A')}<br>
-                  <strong>🕐 Created:</strong> ${formatDate(order.createdAt)}
+                <h3>
+                  <span>${escapeHtml(order.name)}</span>
+                  <span class="order-customer">• ${escapeHtml(order.customerName || 'Guest')}</span>
+                </h3>
+                <div class="order-meta-grid">
+                  <div class="meta-stat">
+                    <span class="label">Created</span>
+                    <span class="value">${formatDate(order.createdAt)}</span>
+                  </div>
+                  <div class="meta-stat">
+                    <span class="label">Age</span>
+                    <span class="value">${order.ageDays || 0} day(s)</span>
+                  </div>
+                  <div class="meta-stat">
+                    <span class="label">Email</span>
+                    <span class="value">${escapeHtml(order.customerEmail || 'No email')}</span>
+                  </div>
+                  <div class="meta-stat">
+                    <span class="label">Phone</span>
+                    <span class="value">${escapeHtml(order.customerPhone || 'No phone')}</span>
+                  </div>
                 </div>
-                <span class="status-badge status-${order.status}">
-                  ${order.status === 'pending' ? '⏳ Pending' : '✅ Ready'}
-                </span>
+                <div class="badge-row">
+                  <span class="status-badge status-${order.status}">
+                    ${order.status === 'pending' ? '⏳ Pending' : '✅ Ready'}
+                  </span>
+                  ${urgencyBadge}
+                  ${reminderChip}
+                </div>
+                ${reminderDetails}
               </div>
             </div>
 
             <div class="items-list">
-              ${order.items.map(item => `
-                <div class="item">
-                  <div class="item-details">
-                    <div class="item-title">
-                      ${escapeHtml(item.title)}
-                      ${item.isCustom ? '<span class="custom-badge">CUSTOM</span>' : ''}
+              ${order.items.map(item => {
+                const itemMetaTags = getItemMetaTags(item);
+                return `
+                  <div class="item">
+                    <div class="item-details">
+                      <div class="item-title">
+                        ${escapeHtml(item.title)}
+                        ${item.isCustom ? '<span class="custom-badge">CUSTOM</span>' : ''}
+                      </div>
+                      ${itemMetaTags.length ? `
+                        <div class="item-tags">
+                          ${itemMetaTags.map(tag => `<span class="item-tag">${escapeHtml(tag)}</span>`).join('')}
+                        </div>
+                      ` : '<div class="item-subtle">No vendor or SKU metadata</div>'}
                     </div>
-                    ${item.variant ? `<div class="item-variant">${escapeHtml(item.variant)}</div>` : ''}
+                    <div class="item-qty">×${item.quantity}</div>
                   </div>
-                  <div class="item-qty">×${item.quantity}</div>
-                </div>
-              `).join('')}
+                `;
+              }).join('')}
             </div>
 
             ${order.note ? `
-              <div style="padding: 12px; background: #FFF5CC; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #F6AD55;">
-                <strong style="color: #7C2D12;">📝 Note:</strong> ${escapeHtml(order.note)}
+              <div class="inline-note">
+                <strong>📝 Note:</strong> ${escapeHtml(order.note)}
               </div>
             ` : ''}
 
             <div class="actions">
-              <div class="action-row">
-                <button class="btn btn-success" onclick="markReady(${order.id})">
-                  ✓ Items Arrived
+              <div class="action-row action-row-primary">
+                <button class="btn btn-success" onclick="markReady(${order.id})" ${readyDisabled}>
+                  ${readyLabel}
                 </button>
-                <button class="btn btn-warning" onclick="emailCustomer(${order.id})">
-                  ✉️ Email Customer
-                </button>
-              </div>
-              <div class="action-row">
-                <button class="btn btn-secondary" onclick="viewInShopify(${order.id})">
-                  🛍️ View in Shopify
-                </button>
-                <button class="btn btn-secondary" onclick="showOrderTimeline(${order.id})">
-                  📊 View Timeline
+                <button class="btn btn-danger" onclick="completeOrder(${order.id})">
+                  ✓ Completed (Delete Request)
                 </button>
               </div>
+              <details class="secondary-actions">
+                <summary>More actions</summary>
+                <div class="secondary-actions-panel">
+                  <button class="btn btn-warning" onclick="emailCustomer(${order.id})" ${emailDisabled}>
+                    ✉️ Email Customer
+                  </button>
+                  <button class="btn btn-secondary" onclick="viewInShopify(${order.id})">
+                    🛍️ View in Shopify
+                  </button>
+                  <button class="btn btn-secondary" onclick="showOrderTimeline(${order.id})">
+                    📊 View Timeline
+                  </button>
+                </div>
+              </details>
+              ${reminderActions}
             </div>
           </div>
         `;
       }).join('');
+    }
+
+    function getItemMetaTags(item) {
+      const tags = [];
+      if (item.variant) tags.push(`Variant: ${item.variant}`);
+      if (item.vendor) tags.push(`Vendor: ${item.vendor}`);
+      if (item.supplierName && item.supplierName !== item.vendor) {
+        tags.push(`Supplier: ${item.supplierName}`);
+      }
+      if (item.sku) tags.push(`SKU: ${item.sku}`);
+      if (item.stockyOrdered) {
+        const po = item.stockyPurchaseOrderNumber ? `PO #${item.stockyPurchaseOrderNumber}` : 'Stocky PO';
+        const status = item.stockyPurchaseItemStatus ? ` • ${item.stockyPurchaseItemStatus}` : '';
+        tags.push(`${po}${status}`);
+      }
+      return tags;
+    }
+
+    function getUrgencyBadge(order) {
+      if (order.status !== 'pending') return '';
+      if (order.urgency === 'critical') {
+        return '<span class="status-badge status-critical">🔥 Critical (14d+)</span>';
+      }
+      if (order.urgency === 'warning') {
+        return '<span class="status-badge status-warning">⚠️ Follow Up (7d+)</span>';
+      }
+      return '';
+    }
+
+    function getReminderChip(order) {
+      if (order.reminderMuted) {
+        return '<span class="reminder-chip muted">🔕 Reminders muted (won\'t get)</span>';
+      }
+      if (order.reminderSnoozedUntil) {
+        return `<span class="reminder-chip snoozed">⏸ Snoozed until ${escapeHtml(formatShortDate(order.reminderSnoozedUntil))}</span>`;
+      }
+      return '<span class="reminder-chip active">🔔 Reminders active</span>';
+    }
+
+    function getReminderDetails(order) {
+      if (order.reminderMuted && order.reminderMutedReason) {
+        return `<div class="reminder-details">Reason: ${escapeHtml(order.reminderMutedReason)}</div>`;
+      }
+      return '';
+    }
+
+    function getReminderActions(order) {
+      const muteButton = order.reminderMuted
+        ? `<button class="btn btn-secondary" onclick="unmuteReminders(${order.id})">🔔 Unmute Reminders</button>`
+        : `<button class="btn btn-muted" onclick="muteReminders(${order.id})">🔕 Won't Get (Mute)</button>`;
+
+      if (order.reminderMuted) {
+        return `
+          <div class="reminder-inline">
+            ${muteButton}
+          </div>
+        `;
+      }
+
+      const resumeButton = order.reminderSnoozedUntil
+        ? `<button class="btn btn-secondary" onclick="clearReminderSnooze(${order.id})">▶ Resume Reminders</button>`
+        : `<button class="btn btn-secondary" onclick="snoozeReminders(${order.id}, 3)">⏸ Snooze 3 Days</button>
+           <button class="btn btn-secondary" onclick="snoozeReminders(${order.id}, 14)">⏸ Snooze 14 Days</button>`;
+
+      return `
+        <details class="reminder-panel">
+          <summary>Reminder controls</summary>
+          <div class="reminder-panel-grid">
+            ${muteButton}
+            ${resumeButton}
+          </div>
+        </details>
+      `;
     }
 
     function escapeHtml(text) {
@@ -1242,6 +2971,51 @@
       if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
 
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function formatShortDate(dateStr) {
+      const date = new Date(dateStr);
+      if (Number.isNaN(date.getTime())) return 'unknown';
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function updateLastSyncLabel() {
+      const label = document.getElementById('lastUpdatedLabel');
+      if (!label) return;
+      if (!lastSyncAt) {
+        label.textContent = 'Last sync: --';
+        return;
+      }
+
+      const diffMs = Date.now() - lastSyncAt.getTime();
+      const diffMins = Math.floor(diffMs / (60 * 1000));
+      const exact = lastSyncAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+      if (diffMins < 1) {
+        label.textContent = `Last sync: just now (${exact})`;
+      } else if (diffMins < 60) {
+        label.textContent = `Last sync: ${diffMins}m ago (${exact})`;
+      } else {
+        const diffHours = Math.floor(diffMins / 60);
+        label.textContent = `Last sync: ${diffHours}h ago (${exact})`;
+      }
+    }
+
+    function updatePurchaseScanLabel() {
+      const label = document.getElementById('purchaseScanLabel');
+      if (!label) return;
+      if (!lastPurchaseScanAt) {
+        label.textContent = 'Purchase scan: --';
+        return;
+      }
+
+      const timeLabel = lastPurchaseScanAt.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+      const deleted = Number((lastPurchaseScanSummary?.deletedDrafts ?? lastPurchaseScanSummary?.resolvedDrafts) || 0);
+      const matched = Number(lastPurchaseScanSummary?.matchedDrafts || 0);
+      label.textContent = `Purchase scan: ${deleted} deleted (${matched} matched) at ${timeLabel}`;
     }
 
     function filterOrders() {
@@ -1331,18 +3105,29 @@
     async function bulkEmail() {
       if (selectedOrderIds.size === 0) return;
 
+      const selectedOrders = Array.from(selectedOrderIds)
+        .map(orderId => orders.find(o => o.id === orderId))
+        .filter(Boolean);
+      const emailableOrders = selectedOrders.filter(order => !!order.customerEmail);
+      const skippedCount = selectedOrders.length - emailableOrders.length;
+
+      if (emailableOrders.length === 0) {
+        showToast('No selected orders have customer emails on file', 'error');
+        return;
+      }
+
       const message = await showPromptModal(
         'Email Customers',
-        `Send email to ${selectedOrderIds.size} customer(s). Enter your message below:`,
+        `Send email to ${emailableOrders.length} customer(s). Enter your message below:${skippedCount ? ` (${skippedCount} selected order(s) will be skipped - no email)` : ''}`,
         'Your items are ready for pickup!'
       );
 
       if (message === null) return;
 
-      showToast(`Sending ${selectedOrderIds.size} emails...`, 'info');
+      showToast(`Sending ${emailableOrders.length} email(s)...`, 'info');
 
-      const promises = Array.from(selectedOrderIds).map(orderId =>
-        fetch(`${WORKER_URL}/api/dashboard/orders/${orderId}/email`, {
+      const promises = emailableOrders.map(order =>
+        fetch(`${WORKER_URL}/api/dashboard/orders/${order.id}/email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: message || undefined })
@@ -1353,15 +3138,56 @@
         const results = await Promise.all(promises);
         const successCount = results.filter(r => r.ok).length;
 
-        if (successCount === selectedOrderIds.size) {
-          showToast(`✅ ${successCount} emails sent!`, 'success');
+        if (successCount === emailableOrders.length) {
+          const suffix = skippedCount ? ` (${skippedCount} skipped)` : '';
+          showToast(`✅ ${successCount} emails sent${suffix}`, 'success');
         } else {
-          showToast(`⚠️ ${successCount} of ${selectedOrderIds.size} emails sent`, 'error');
+          showToast(`⚠️ ${successCount} of ${emailableOrders.length} emails sent`, 'error');
         }
 
         clearSelection();
       } catch (error) {
         showToast('Error sending emails', 'error');
+      }
+    }
+
+    async function bulkComplete() {
+      if (selectedOrderIds.size === 0) return;
+
+      const selectedOrders = Array.from(selectedOrderIds)
+        .map(orderId => orders.find(o => o.id === orderId))
+        .filter(Boolean);
+
+      const confirmed = await showConfirmModal(
+        'Complete Orders (Delete Draft Requests)',
+        `Mark ${selectedOrders.length} order(s) as completed and permanently delete their draft requests? No emails will be sent.`
+      );
+
+      if (!confirmed) return;
+
+      showToast(`Completing ${selectedOrders.length} order(s)...`, 'info');
+
+      const promises = selectedOrders.map(order =>
+        fetch(`${WORKER_URL}/api/dashboard/orders/${order.id}/complete`, { method: 'POST' })
+      );
+
+      try {
+        const responses = await Promise.all(promises);
+        const payloads = await Promise.all(responses.map(r => r.json().catch(() => ({}))));
+        const successCount = responses.reduce((count, response, index) => (
+          count + ((response.ok && payloads[index]?.ok) ? 1 : 0)
+        ), 0);
+
+        if (successCount === selectedOrders.length) {
+          showToast(`✅ ${successCount} order(s) completed and removed`, 'success');
+        } else {
+          showToast(`⚠️ ${successCount} of ${selectedOrders.length} deleted`, 'error');
+        }
+
+        clearSelection();
+        await loadOrders();
+      } catch (error) {
+        showToast(`Error completing orders: ${error.message}`, 'error');
       }
     }
 
@@ -1391,7 +3217,42 @@
       }
     }
 
+    async function completeOrder(orderId) {
+      const order = orders.find(o => o.id === orderId);
+      const reference = order?.name ? ` ${order.name}` : '';
+      const confirmed = await showConfirmModal(
+        'Complete Order (Delete Draft Request)',
+        `Mark${reference} as completed and permanently delete its draft request? No emails will be sent.`
+      );
+
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch(`${WORKER_URL}/api/dashboard/orders/${orderId}/complete`, {
+          method: 'POST'
+        });
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok || !result.ok) {
+          throw new Error(result.error || `Request failed (${response.status})`);
+        }
+
+        selectedOrderIds.delete(orderId);
+        updateBulkActionsBar();
+        showToast('Order completed and removed from dashboard', 'success');
+        await loadOrders();
+      } catch (error) {
+        showToast(`Error completing order: ${error.message}`, 'error');
+      }
+    }
+
     async function emailCustomer(orderId) {
+      const order = orders.find(o => o.id === orderId);
+      if (!order?.customerEmail) {
+        showToast('Cannot email: customer has no email on file', 'error');
+        return;
+      }
+
       const message = await showPromptModal(
         'Email Customer',
         'Enter your message to the customer:',
@@ -1415,6 +3276,55 @@
       } catch (error) {
         showToast('Error: ' + error.message, 'error');
       }
+    }
+
+    async function updateReminderSettings(orderId, payload, successMessage) {
+      try {
+        const response = await fetch(`${WORKER_URL}/api/dashboard/orders/${orderId}/reminder`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (!response.ok || !result.ok) {
+          throw new Error(result.error || 'Failed to update reminder settings');
+        }
+
+        showToast(successMessage, 'success');
+        await loadOrders();
+      } catch (error) {
+        showToast(`Reminder update failed: ${error.message}`, 'error');
+      }
+    }
+
+    async function muteReminders(orderId) {
+      const reason = await showPromptModal(
+        'Mute Reminders For This Order',
+        "Use this when you know the item won't be sourced soon. Optional reason:",
+        "Won't get for now"
+      );
+
+      if (reason === null) return;
+      await updateReminderSettings(orderId, { action: 'mute', reason: reason || undefined }, 'Reminders muted for this order');
+    }
+
+    async function unmuteReminders(orderId) {
+      const confirmed = await showConfirmModal(
+        'Resume Reminders',
+        'Turn reminders back on for this order?'
+      );
+
+      if (!confirmed) return;
+      await updateReminderSettings(orderId, { action: 'unmute' }, 'Reminders resumed');
+    }
+
+    async function snoozeReminders(orderId, days = 14) {
+      await updateReminderSettings(orderId, { action: 'snooze', days }, `Reminders snoozed for ${days} days`);
+    }
+
+    async function clearReminderSnooze(orderId) {
+      await updateReminderSettings(orderId, { action: 'clear_snooze' }, 'Snooze cleared, reminders resumed');
     }
 
     function viewInShopify(orderId) {
@@ -1523,17 +3433,19 @@
       });
     }
 
-    function showInfoModal(title, htmlContent) {
+    function showInfoModal(title, htmlContent, options = {}) {
+      const modalClass = ['modal', String(options.modalClass || '').trim()].filter(Boolean).join(' ');
+      const actionsHtml = options.actionsHtml || '<button class="btn btn-primary" onclick="this.closest(\'.modal-overlay\').remove()">Close</button>';
       const overlay = document.createElement('div');
       overlay.className = 'modal-overlay';
       overlay.innerHTML = `
-        <div class="modal">
+        <div class="${modalClass}">
           <h2>${title}</h2>
           <div class="modal-body">
             ${htmlContent}
           </div>
           <div class="modal-actions">
-            <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+            ${actionsHtml}
           </div>
         </div>
       `;
@@ -1599,7 +3511,7 @@
       // F5 - Refresh
       if (e.key === 'F5') {
         e.preventDefault();
-        loadOrders();
+        loadOrders({ notify: true });
         return;
       }
 
@@ -1648,6 +3560,9 @@
         loadOrders();
       }
     }, 120000);
+
+    // Update relative sync label every 30s
+    setInterval(updateLastSyncLabel, 30000);
   </script>
 </body>
 </html>

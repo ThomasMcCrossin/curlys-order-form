@@ -8,8 +8,20 @@ FROM_EMAIL = "tom@curlys.ca"
 STAFF_EMAIL = "tom@curlys.ca"
 STAFF_NOTIFY_ALL = "true"
 AUTO_INVOICE_ON_STOCK = "true"
-FLOW_SHARED_SECRET = "BrownsCornerCanteen"
+REMINDER_MIN_AGE_DAYS = "2"
+REMINDER_CRITICAL_DAYS = "7"
+REMINDER_MAX_ITEMS = "40"
+RECONCILE_LOOKBACK_DAYS = "90"
+RECONCILE_MAX_ORDERS_PER_CUSTOMER = "50"
+STOCKY_PO_LOOKBACK_DAYS = "90"
+STOCKY_PO_STATUSES = "open-unarchived,confirmed-unarchived"
+STOCKY_PO_LIMIT = "60"
+STOCKY_PO_MAX_PAGES = "3"
+
+[triggers]
+crons = ["0 14 * * 1-5"]
 
 # Secrets (already set in Cloudflare, will be preserved):
 #   SHOPIFY_ADMIN_TOKEN - Shopify Admin API access token (SECRET)
 #   RESEND_API_KEY - Resend.com API key for emails (SECRET)
+#   FLOW_SHARED_SECRET - Shopify Flow webhook shared secret (SECRET)

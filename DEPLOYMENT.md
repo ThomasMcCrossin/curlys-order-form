@@ -118,12 +118,12 @@ FROM_EMAIL = "tom@curlys.ca"
 STAFF_EMAIL = "tom@curlys.ca"
 STAFF_NOTIFY_ALL = "true"
 AUTO_INVOICE_ON_STOCK = "true"
-FLOW_SHARED_SECRET = "BrownsCornerCanteen"
 ```
 
 ### Worker Secrets (Not in Git - Already Set in Cloudflare)
 - `SHOPIFY_ADMIN_TOKEN` - Shopify Admin API access token
 - `RESEND_API_KEY` - Resend.com API key for emails
+- `FLOW_SHARED_SECRET` - Shopify Flow webhook shared secret
 
 ---
 
