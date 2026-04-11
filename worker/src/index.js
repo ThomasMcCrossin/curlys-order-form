@@ -815,96 +815,160 @@ export default {
       }
     }
 
-    // === SHOPIFY FLOW: Back in stock (unchanged) ===
+    // === SHOPIFY FLOW: Back in stock ===
     if (url.pathname === "/flow/back-in-stock" && request.method === "POST") {
       if (request.headers.get("x-flow-secret") !== env.FLOW_SHARED_SECRET) {
         return new Response("Unauthorized", { status: 401 });
       }
       const body = await request.json();
-      const variantId =
-        legacyIdFromGid(body.variant_gid) ||
-        (body.barcode ? await variantIdFromBarcode(body.barcode, env) : null);
-      if (!variantId) return json({ ok: false, reason: "No variant id" }, 200);
-
-      const drafts = await listOpenRequestDrafts(env);
-      const matches = drafts
-        .filter(d => (d.tags || "").includes("order-request"))
-        .filter(d => (d.tags || "").includes("pending"))
-        .filter(d => (d.line_items || []).some(li => Number(li.variant_id) === Number(variantId)))
-        .sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
-      const matchedVariantDetails = await fetchVariantDetailsMap(env, [variantId]);
-
-      let notified = 0, invoiced = 0;
-      const autoInvoice = String(env.AUTO_INVOICE_ON_STOCK || "false").toLowerCase() === "true";
-
-      for (const draft of matches) {
-        const alreadyNotified =
-          (draft.tags || "").includes("notified") ||
-          (draft.note_attributes || []).some(na => na.name === `notified_variant_${variantId}`);
-        if (alreadyNotified) continue;
-
-        const email = draft?.customer?.email;
-        const matchedLineItem = (draft.line_items || []).find(li => Number(li.variant_id) === Number(variantId));
-        const enrichedMatchedLineItem = enrichLineItemsFromMap(
-          [matchedLineItem || { variant_id: variantId }],
-          matchedVariantDetails
-        )[0];
-        const productName = enrichedMatchedLineItem?.title;
-        const matchedItemSummary = summarizeLineItems(
-          [enrichedMatchedLineItem],
-          { maxItems: 1, includeVendor: true }
-        );
-
-        // Send invoice if AUTO_INVOICE_ON_STOCK is true, otherwise send plain text email
-        if (autoInvoice && email) {
-          // Send Shopify invoice only (better formatted, allows payment)
-          await sendInvoice(env, draft, "You can pay now to reserve it, or come in to buy. Thanks!");
-          invoiced++;
-          notified++;
-        } else if (email && env.RESEND_API_KEY && env.FROM_EMAIL) {
-          // Fallback: send plain text email if no auto-invoice or no email
-          await sendResend(env, {
-            from: env.FROM_EMAIL,
-            to: email,
-            reply_to: env.STAFF_EMAIL || undefined,
-            subject: `Now in stock: ${productName || "Your requested item"}`,
-            html: `
-              <p>Good news—your requested item is now in stock.</p>
-              <p><strong>Reference:</strong> ${draft.name || draft.id}</p>
-              <p><strong>Item:</strong> ${escapeHtmlText(matchedItemSummary)}</p>
-              <p>You can pay now to reserve it, or visit us in-store.</p>
-            `
-          });
-          notified++;
-        }
-
-        if (env.RESEND_API_KEY && env.FROM_EMAIL && env.STAFF_EMAIL) {
-          await sendResend(env, {
-            from: env.FROM_EMAIL,
-            to: env.STAFF_EMAIL,
-            subject: `Customer ${email ? "notified" : "has no email"} — ${productName || "Requested item"}`,
-            html: `
-              <p><strong>Item:</strong> ${escapeHtmlText(matchedItemSummary)}</p>
-              <p><strong>Customer Email:</strong> ${email || "(none)"}</p>
-              <p><a href="https://${env.SHOPIFY_STORE}/admin/draft_orders/${draft.id}">Open Draft</a></p>
-              <p>Please set the item aside.</p>
-            `
-          });
-        }
-
-        await shopifyRest(env, `/draft_orders/${draft.id}.json`, "PUT", {
-          draft_order: {
-            id: draft.id,
-            tags: `${draft.tags || ""},notified`,
-            note_attributes: [
-              ...(draft.note_attributes || []),
-              { name: `notified_variant_${variantId}`, value: new Date().toISOString() }
-            ]
-          }
-        });
+      const variantIds = await resolveBackInStockVariantIds(body, env);
+      if (!variantIds.length) {
+        console.log(JSON.stringify({
+          message: "Flow back-in-stock ignored: no variant id",
+          payloadKeys: Object.keys(body || {}).sort()
+        }));
+        return json({ ok: false, reason: "No variant id" }, 200);
       }
 
-      return json({ ok: true, variantId, matches: matches.length, notified, invoiced }, 200);
+      const drafts = await listOpenRequestDrafts(env);
+      const matchedVariantDetails = await fetchVariantDetailsMap(env, variantIds);
+
+      let totalMatches = 0, totalNotified = 0, totalInvoiced = 0;
+      const autoInvoice = String(env.AUTO_INVOICE_ON_STOCK || "false").toLowerCase() === "true";
+      const results = [];
+      const draftNotificationState = new Map();
+
+      for (const variantId of variantIds) {
+        const matches = drafts
+          .filter(d => parseTags(d.tags).includes("order-request"))
+          .filter(d => parseTags(d.tags).includes("pending"))
+          .filter(d => (d.line_items || []).some(li => Number(li.variant_id) === Number(variantId)))
+          .sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+
+        totalMatches += matches.length;
+        let notified = 0, invoiced = 0;
+
+        for (const draft of matches) {
+          const stateKey = String(draft.id);
+          const currentState = draftNotificationState.get(stateKey) || {
+            tags: draft.tags || "",
+            noteAttributes: draft.note_attributes || []
+          };
+          const noteAttributes = currentState.noteAttributes;
+          const hasVariantNotification = noteAttributes.some(na => na.name === `notified_variant_${variantId}`);
+          const hasAnyVariantNotification = noteAttributes.some(na => /^notified_variant_\d+$/.test(String(na?.name || "")));
+          const hasLegacyNotifiedTag = parseTags(currentState.tags).includes("notified");
+          if (hasVariantNotification || (hasLegacyNotifiedTag && !hasAnyVariantNotification)) continue;
+
+          const email = draft?.customer?.email || getNoteAttribute(noteAttributes, "Customer Email");
+          const matchedLineItem = (draft.line_items || []).find(li => Number(li.variant_id) === Number(variantId));
+          const enrichedMatchedLineItem = enrichLineItemsFromMap(
+            [matchedLineItem || { variant_id: variantId }],
+            matchedVariantDetails
+          )[0];
+          const productName = enrichedMatchedLineItem?.title;
+          const matchedItemSummary = summarizeLineItems(
+            [enrichedMatchedLineItem],
+            { maxItems: 1, includeVendor: true }
+          );
+
+          let customerSent = false;
+          let invoiceSent = false;
+          let invoiceError = null;
+
+          if (email && env.RESEND_API_KEY && env.FROM_EMAIL) {
+            await sendResend(env, {
+              from: env.FROM_EMAIL,
+              to: email,
+              reply_to: env.STAFF_EMAIL || undefined,
+              subject: `Now in stock: ${productName || "Your requested item"}`,
+              html: `
+                <p>Good news—your requested item is now in stock.</p>
+                <p><strong>Reference:</strong> ${draft.name || draft.id}</p>
+                <p><strong>Item:</strong> ${escapeHtmlText(matchedItemSummary)}</p>
+                <p>You can pay now to reserve it, or visit us in-store.</p>
+              `
+            });
+            customerSent = true;
+          }
+
+          if (autoInvoice && email) {
+            try {
+              await sendInvoice(env, draft, "You can pay now to reserve it, or come in to buy. Thanks!");
+              invoiceSent = true;
+            } catch (e) {
+              invoiceError = e?.message || String(e);
+              console.error(JSON.stringify({
+                message: "Flow back-in-stock invoice failed",
+                draftId: draft.id,
+                variantId,
+                error: invoiceError
+              }));
+            }
+          }
+
+          if (customerSent || invoiceSent) notified++;
+          if (invoiceSent) invoiced++;
+
+          if (env.RESEND_API_KEY && env.FROM_EMAIL && env.STAFF_EMAIL) {
+            await sendResend(env, {
+              from: env.FROM_EMAIL,
+              to: env.STAFF_EMAIL,
+              subject: `Customer ${email ? "notified" : "has no email"} — ${productName || "Requested item"}`,
+              html: `
+                <p><strong>Item:</strong> ${escapeHtmlText(matchedItemSummary)}</p>
+                <p><strong>Customer Email:</strong> ${email || "(none)"}</p>
+                <p><strong>Customer Email Sent:</strong> ${customerSent ? "Yes" : "No"}</p>
+                <p><strong>Shopify Invoice Sent:</strong> ${invoiceSent ? "Yes" : "No"}</p>
+                ${invoiceError ? `<p><strong>Invoice Error:</strong> ${escapeHtmlText(invoiceError)}</p>` : ""}
+                <p><a href="https://${env.SHOPIFY_STORE}/admin/draft_orders/${draft.id}">Open Draft</a></p>
+                <p>Please set the item aside.</p>
+              `
+            });
+          }
+
+          const nextTags = ensureTag(parseTags(currentState.tags), "notified").join(",");
+          const nextNoteAttributes = upsertNoteAttribute(
+            noteAttributes,
+            `notified_variant_${variantId}`,
+            new Date().toISOString()
+          );
+
+          await shopifyRest(env, `/draft_orders/${draft.id}.json`, "PUT", {
+            draft_order: {
+              id: draft.id,
+              tags: nextTags,
+              note_attributes: nextNoteAttributes
+            }
+          });
+
+          draftNotificationState.set(stateKey, {
+            tags: nextTags,
+            noteAttributes: nextNoteAttributes
+          });
+        }
+
+        totalNotified += notified;
+        totalInvoiced += invoiced;
+        results.push({ variantId, matches: matches.length, notified, invoiced });
+      }
+
+      console.log(JSON.stringify({
+        message: "Flow back-in-stock processed",
+        variantIds,
+        matches: totalMatches,
+        notified: totalNotified,
+        invoiced: totalInvoiced
+      }));
+
+      return json({
+        ok: true,
+        variantIds,
+        matches: totalMatches,
+        notified: totalNotified,
+        invoiced: totalInvoiced,
+        results
+      }, 200);
     }
 
     return new Response("Not found", { status: 404, headers: cors() });
@@ -961,11 +1025,219 @@ function legacyIdFromGid(gid) {
   return m ? Number(m[1]) : null;
 }
 
+function legacyIdFromTypedGid(gid, resourceName) {
+  const s = String(gid || "").trim();
+  if (!s || !s.includes(`/` + resourceName + `/`)) return null;
+  return legacyIdFromGid(s);
+}
+
 function parseVariantId(input) {
   if (!input) return null;
   const s = String(input).trim();
   const m = /(\d+)$/.exec(s);
   return m ? Number(m[1]) : null;
+}
+
+function firstPresentValue(...values) {
+  for (const value of values) {
+    if (value == null) continue;
+    const s = String(value).trim();
+    if (s) return value;
+  }
+  return null;
+}
+
+function parseVariantIdentifier(value) {
+  const s = String(value || "").trim();
+  if (!s) return null;
+  if (s.includes("/ProductVariant/")) return legacyIdFromTypedGid(s, "ProductVariant");
+  return parseVariantId(s);
+}
+
+function parseInventoryItemIdentifier(value) {
+  const s = String(value || "").trim();
+  if (!s) return null;
+  if (s.includes("/InventoryItem/")) return legacyIdFromTypedGid(s, "InventoryItem");
+  return parseVariantId(s);
+}
+
+function extractVariantIdFromFlowObject(obj) {
+  if (!obj || typeof obj !== "object") return parseVariantIdentifier(obj);
+
+  const directGid = firstPresentValue(
+    obj.variant_gid,
+    obj.variantGid,
+    obj.product_variant_gid,
+    obj.productVariantGid,
+    obj.variant_admin_graphql_api_id,
+    obj.variantAdminGraphqlApiId,
+    obj.admin_graphql_api_id,
+    obj.adminGraphqlApiId,
+    obj.gid,
+    obj.id
+  );
+  const fromDirectGid = legacyIdFromTypedGid(directGid, "ProductVariant");
+  if (fromDirectGid) return fromDirectGid;
+
+  const directNumeric = firstPresentValue(
+    obj.variant_id,
+    obj.variantId,
+    obj.product_variant_id,
+    obj.productVariantId
+  );
+  const fromDirectNumeric = parseVariantId(directNumeric);
+  if (fromDirectNumeric) return fromDirectNumeric;
+
+  const nestedVariant = obj.variant || obj.product_variant || obj.productVariant;
+  if (nestedVariant && typeof nestedVariant === "object") {
+    const nestedGid = firstPresentValue(
+      nestedVariant.admin_graphql_api_id,
+      nestedVariant.adminGraphqlApiId,
+      nestedVariant.gid,
+      nestedVariant.id
+    );
+    const fromNestedGid = legacyIdFromTypedGid(nestedGid, "ProductVariant");
+    if (fromNestedGid) return fromNestedGid;
+
+    const nestedNumeric = firstPresentValue(
+      nestedVariant.legacyResourceId,
+      nestedVariant.legacy_resource_id,
+      nestedVariant.variant_id,
+      nestedVariant.variantId
+    );
+    const fromNestedNumeric = parseVariantId(nestedNumeric);
+    if (fromNestedNumeric) return fromNestedNumeric;
+  }
+
+  return null;
+}
+
+function extractInventoryItemIdFromFlowObject(obj) {
+  if (!obj || typeof obj !== "object") return parseInventoryItemIdentifier(obj);
+
+  const directGid = firstPresentValue(
+    obj.inventory_item_gid,
+    obj.inventoryItemGid,
+    obj.inventory_item_admin_graphql_api_id,
+    obj.inventoryItemAdminGraphqlApiId,
+    obj.admin_graphql_api_id,
+    obj.adminGraphqlApiId,
+    obj.gid,
+    obj.id
+  );
+  const fromDirectGid = legacyIdFromTypedGid(directGid, "InventoryItem");
+  if (fromDirectGid) return fromDirectGid;
+
+  const directNumeric = firstPresentValue(
+    obj.inventory_item_id,
+    obj.inventoryItemId
+  );
+  const fromDirectNumeric = parseInventoryItemIdentifier(directNumeric);
+  if (fromDirectNumeric) return fromDirectNumeric;
+
+  const nestedInventoryItem = obj.inventory_item || obj.inventoryItem;
+  if (nestedInventoryItem && typeof nestedInventoryItem === "object") {
+    const nestedGid = firstPresentValue(
+      nestedInventoryItem.admin_graphql_api_id,
+      nestedInventoryItem.adminGraphqlApiId,
+      nestedInventoryItem.gid,
+      nestedInventoryItem.id
+    );
+    const fromNestedGid = legacyIdFromTypedGid(nestedGid, "InventoryItem");
+    if (fromNestedGid) return fromNestedGid;
+
+    const nestedNumeric = firstPresentValue(
+      nestedInventoryItem.legacyResourceId,
+      nestedInventoryItem.legacy_resource_id,
+      nestedInventoryItem.inventory_item_id,
+      nestedInventoryItem.inventoryItemId
+    );
+    const fromNestedNumeric = parseInventoryItemIdentifier(nestedNumeric);
+    if (fromNestedNumeric) return fromNestedNumeric;
+  }
+
+  return null;
+}
+
+function variantInventoryBecameAvailable(variant) {
+  if (!variant || typeof variant !== "object") return true;
+  const currentRaw = firstPresentValue(
+    variant.inventory_quantity,
+    variant.inventoryQuantity,
+    variant.available,
+    variant.availableQuantity,
+    variant.quantity
+  );
+  const previousRaw = firstPresentValue(
+    variant.old_inventory_quantity,
+    variant.oldInventoryQuantity,
+    variant.previous_inventory_quantity,
+    variant.previousInventoryQuantity
+  );
+
+  const current = Number(currentRaw);
+  const previous = Number(previousRaw);
+  if (!Number.isFinite(current) || !Number.isFinite(previous)) return false;
+  return previous <= 0 && current > 0;
+}
+
+async function resolveBackInStockVariantIds(body, env) {
+  const ids = new Set();
+  const addVariantId = id => {
+    const parsed = parseVariantIdentifier(id);
+    if (parsed) ids.add(Number(parsed));
+  };
+
+  addVariantId(extractVariantIdFromFlowObject(body));
+
+  const variantGroups = [
+    body?.variants,
+    body?.product?.variants,
+    body?.product_variants,
+    body?.productVariants
+  ].filter(Array.isArray);
+
+  for (const variants of variantGroups) {
+    for (const variant of variants) {
+      if (variantInventoryBecameAvailable(variant)) {
+        addVariantId(extractVariantIdFromFlowObject(variant));
+      }
+    }
+  }
+
+  const inventoryItemIds = new Set();
+  const addInventoryItemId = id => {
+    const parsed = parseInventoryItemIdentifier(id);
+    if (parsed) inventoryItemIds.add(Number(parsed));
+  };
+
+  addInventoryItemId(extractInventoryItemIdFromFlowObject(body));
+
+  const inventoryItemGroups = [
+    body?.inventory_items,
+    body?.inventoryItems
+  ].filter(Array.isArray);
+
+  for (const inventoryItems of inventoryItemGroups) {
+    for (const inventoryItem of inventoryItems) {
+      addInventoryItemId(extractInventoryItemIdFromFlowObject(inventoryItem));
+    }
+  }
+
+  for (const inventoryItemId of inventoryItemIds) {
+    const variantId = await variantIdFromInventoryItemId(inventoryItemId, env);
+    addVariantId(variantId);
+  }
+
+  if (!ids.size && body?.barcode) {
+    addVariantId(await variantIdFromBarcode(body.barcode, env));
+  }
+
+  if (!ids.size && body?.sku) {
+    addVariantId(await variantIdFromSku(body.sku, env));
+  }
+
+  return Array.from(ids);
 }
 
 function normalizeMoney(x) {
@@ -1248,6 +1520,34 @@ async function variantIdFromBarcode(barcode, env) {
   return data?.productVariants?.edges?.[0]?.node?.legacyResourceId || null;
 }
 
+async function variantIdFromSku(sku, env) {
+  const data = await shopifyGraphQL(env, `
+    query($q:String!) {
+      productVariants(first: 1, query: $q) {
+        edges { node { legacyResourceId sku } }
+      }
+    }
+  `, { q: `sku:${String(sku).trim()}` });
+  return data?.productVariants?.edges?.[0]?.node?.legacyResourceId || null;
+}
+
+async function variantIdFromInventoryItemId(inventoryItemId, env) {
+  const id = parseInventoryItemIdentifier(inventoryItemId);
+  if (!id) return null;
+
+  const data = await shopifyGraphQL(env, `
+    query($id: ID!) {
+      inventoryItem(id: $id) {
+        variant {
+          legacyResourceId
+        }
+      }
+    }
+  `, { id: `gid://shopify/InventoryItem/${id}` });
+
+  return data?.inventoryItem?.variant?.legacyResourceId || null;
+}
+
 async function findOrAttachCustomer(customerInput, env) {
   if (!customerInput) throw new Error("Customer object missing");
 
@@ -1287,8 +1587,49 @@ async function sendInvoice(env, draft, customMessage) {
 }
 
 async function listOpenRequestDrafts(env) {
-  const res = await shopifyRest(env, `/draft_orders.json?status=open`);
-  return (res?.draft_orders || []).filter(d => (d.tags || "").includes("order-request"));
+  const drafts = [];
+  let nextUrl = `https://${env.SHOPIFY_STORE}/admin/api/2024-10/draft_orders.json?status=open&limit=250`;
+  let pages = 0;
+  const maxPages = 20;
+
+  while (nextUrl && pages < maxPages) {
+    pages++;
+    const response = await fetch(nextUrl, {
+      headers: {
+        "X-Shopify-Access-Token": env.SHOPIFY_ADMIN_TOKEN,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      let detail = await response.text();
+      try { detail = JSON.stringify(JSON.parse(detail), null, 2); } catch {}
+      throw new Error(`Shopify REST GET draft_orders page failed: ${response.status} ${detail}`);
+    }
+
+    const data = await response.json();
+    drafts.push(...(data?.draft_orders || []));
+    nextUrl = nextUrlFromLinkHeader(response.headers.get("Link"));
+  }
+
+  if (nextUrl) {
+    console.warn(JSON.stringify({
+      message: "Open draft pagination stopped before exhausting results",
+      maxPages
+    }));
+  }
+
+  return drafts.filter(d => parseTags(d.tags).includes("order-request"));
+}
+
+function nextUrlFromLinkHeader(linkHeader) {
+  if (!linkHeader) return null;
+  for (const part of String(linkHeader).split(",")) {
+    if (!part.includes('rel="next"')) continue;
+    const match = /<([^>]+)>/.exec(part);
+    return match?.[1] || null;
+  }
+  return null;
 }
 
 async function deleteDraftOrderHard(env, draftId) {
@@ -1939,7 +2280,7 @@ async function sendPendingReminderDigest(env) {
 }
 
 async function sendResend(env, payload) {
-  await fetch("https://api.resend.com/emails", {
+  const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${env.RESEND_API_KEY}`,
@@ -1947,4 +2288,10 @@ async function sendResend(env, payload) {
     },
     body: JSON.stringify(payload)
   });
+
+  if (!response.ok) {
+    let detail = await response.text();
+    try { detail = JSON.stringify(JSON.parse(detail), null, 2); } catch {}
+    throw new Error(`Resend email failed: ${response.status} ${detail}`);
+  }
 }
