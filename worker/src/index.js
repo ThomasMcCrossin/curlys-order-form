@@ -2494,7 +2494,8 @@ async function sendResend(env, payload) {
     method: "POST",
     headers: {
       Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "User-Agent": "curlys-email-agent/clarencehub/1.0"
     },
     body: JSON.stringify(payload)
   });
