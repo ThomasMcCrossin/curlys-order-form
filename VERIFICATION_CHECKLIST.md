@@ -1,3 +1,5 @@
+> **Historical / non-canonical checklist.** These assertions and operator holds are preserved for provenance and are not current acceptance criteria. See [the program roadmap](docs/80_PROGRAM_ROADMAP.md) and [the doctrine-conversion change record](docs/changes/2026-08-09-doctrine-conversion.md) for the canonical task and decision record.
+
 # Verification Checklist - After Git Deploy Setup
 
 ## Before Creating New Git-Connected Pages Project

@@ -1,3 +1,5 @@
+> **Historical / non-canonical checklist.** This file is preserved for provenance and is no longer the task queue. The canonical task inventory is [the program roadmap](docs/80_PROGRAM_ROADMAP.md); conversion details are recorded in [the doctrine-conversion change record](docs/changes/2026-08-09-doctrine-conversion.md).
+
 # TODO - Future Enhancements
 
 ## Email Improvements (HIGH PRIORITY)
