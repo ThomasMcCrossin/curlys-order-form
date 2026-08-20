@@ -679,6 +679,9 @@
           <h3 id="selectedCustomerName"></h3>
           <p id="selectedCustomerEmail"></p>
           <p id="selectedCustomerPhone"></p>
+          <div id="missingPhonePrompt" style="display: none; margin-top: 0.5rem;">
+            <button class="btn btn-link" type="button" onclick="showPhoneNumberSection()">Add phone number</button>
+          </div>
         </div>
         <button class="btn btn-link" onclick="clearCustomer()">Change</button>
       </div>
@@ -1006,21 +1009,25 @@
       document.getElementById('selectedCustomerEmail').textContent = customer.email || '';
       document.getElementById('selectedCustomerPhone').textContent = customer.phone || '';
 
-      // Show phone number section
+      // Show the phone prompt only when the selected customer has no phone.
       const phoneSection = document.getElementById('phoneNumberSection');
       const phoneInput = document.getElementById('customerPhoneInput');
       const phoneVerifyNote = document.getElementById('phoneVerifyNote');
       const phoneRefusedCheckbox = document.getElementById('phoneRefusedCheckbox');
+      const missingPhonePrompt = document.getElementById('missingPhonePrompt');
 
-      phoneSection.style.display = 'block';
+      phoneSection.style.display = 'none';
+      missingPhonePrompt.style.display = customer.phone ? 'none' : 'block';
       phoneRefusedCheckbox.checked = false;
+      phoneInput.disabled = false;
+      document.getElementById('phoneErrorNote').style.display = 'none';
 
       if (customer.phone) {
-        // Customer has phone - show it and display verification note
+        // Customer has a phone - retain the existing customer data without an edit field.
         phoneInput.value = formatPhoneDisplay(customer.phone);
         phoneVerifyNote.style.display = 'block';
       } else {
-        // No phone - clear input and hide verification note
+        // No phone - offer the inline controls on demand.
         phoneInput.value = '';
         phoneVerifyNote.style.display = 'none';
       }
@@ -1035,8 +1042,25 @@
       selectedCustomer = null;
       document.getElementById('selectedCustomerCard').style.display = 'none';
       document.getElementById('phoneNumberSection').style.display = 'none';
+      document.getElementById('missingPhonePrompt').style.display = 'none';
+      resetPhoneControls();
       document.getElementById('customerSearchSection').style.display = 'block';
       document.getElementById('customerSearch').focus();
+    }
+
+    function showPhoneNumberSection() {
+      const phoneSection = document.getElementById('phoneNumberSection');
+      phoneSection.style.display = 'block';
+      document.getElementById('missingPhonePrompt').style.display = 'none';
+      document.getElementById('customerPhoneInput').focus();
+    }
+
+    function resetPhoneControls() {
+      document.getElementById('customerPhoneInput').value = '';
+      document.getElementById('customerPhoneInput').disabled = false;
+      document.getElementById('phoneRefusedCheckbox').checked = false;
+      document.getElementById('phoneVerifyNote').style.display = 'none';
+      document.getElementById('phoneErrorNote').style.display = 'none';
     }
 
     function toggleManualEntry() {
@@ -1407,6 +1431,9 @@
 
       // Validate phone number if customer is selected
       if (selectedCustomer) {
+        if (!selectedCustomer.phone && document.getElementById('phoneNumberSection').style.display === 'none') {
+          showPhoneNumberSection();
+        }
         const phoneInput = document.getElementById('customerPhoneInput');
         const phoneRefused = document.getElementById('phoneRefusedCheckbox').checked;
         const phoneErrorNote = document.getElementById('phoneErrorNote');
@@ -1627,6 +1654,9 @@
       document.getElementById('customQuantity').value = '1';
       
       document.getElementById('selectedCustomerCard').style.display = 'none';
+      document.getElementById('phoneNumberSection').style.display = 'none';
+      document.getElementById('missingPhonePrompt').style.display = 'none';
+      resetPhoneControls();
       document.getElementById('customerSearchSection').style.display = 'block';
       document.getElementById('manualCustomerFields').classList.remove('show');
       document.getElementById('customItemSection').classList.remove('show');
