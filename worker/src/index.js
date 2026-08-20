@@ -64,7 +64,8 @@ export default {
         // Use GraphQL for more efficient product search
         const searchQuery = query.trim();
         const STATUS_FILTER = "(status:ACTIVE OR status:DRAFT OR status:ARCHIVED)";
-        const PRODUCT_LIMIT = 25;
+        const PRODUCT_QUERY_LIMIT = 25;
+        const GROUPED_PRODUCT_LIMIT = 10;
         const VARIANTS_PER_PRODUCT_LIMIT = 25;
         const VARIANT_TEXT_LIMIT = 100;
         const statusOrder = { ACTIVE: 0, DRAFT: 1, ARCHIVED: 2 };
@@ -75,7 +76,7 @@ export default {
         // Search by barcode using GraphQL (include all statuses: active, draft, archived)
         const barcodeData = await shopifyGraphQL(env, `
           query($q:String!) {
-            productVariants(first: ${PRODUCT_LIMIT}, query: $q) {
+            productVariants(first: ${PRODUCT_QUERY_LIMIT}, query: $q) {
               edges {
                 node {
                   legacyResourceId
@@ -100,6 +101,7 @@ export default {
         `, { q: `(barcode:${searchQuery}) AND ${STATUS_FILTER}` });
 
         results = (barcodeData?.productVariants?.edges || []).map(edge => ({
+          productId: edge.node.product.id,
           type: 'variant', // Mark as individual variant (barcode match)
           variantId: edge.node.legacyResourceId,
           productTitle: edge.node.product.title,
@@ -115,6 +117,17 @@ export default {
 
         // Sort barcode results: ACTIVE first, then DRAFT, then ARCHIVED
         results.sort((a, b) => (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99));
+
+        // Keep barcode matches as individual variants, but cap their distinct parent products.
+        const barcodeProductIds = new Set();
+        results = results
+          .filter(result => {
+            if (barcodeProductIds.has(result.productId)) return true;
+            if (barcodeProductIds.size >= GROUPED_PRODUCT_LIMIT) return false;
+            barcodeProductIds.add(result.productId);
+            return true;
+          })
+          .map(({ productId, ...result }) => result);
 
         // If no barcode matches, search variants by text so variant-only terms are discoverable
         if (results.length === 0) {
@@ -176,14 +189,14 @@ export default {
           results = Array.from(groupedResults.values());
 
           results.sort((a, b) => (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99));
-          results = results.slice(0, PRODUCT_LIMIT);
+          results = results.slice(0, GROUPED_PRODUCT_LIMIT);
         }
 
         // Fallback: search by product title and include more variants per product
         if (results.length === 0) {
           const titleData = await shopifyGraphQL(env, `
             query($q:String!) {
-              products(first: ${PRODUCT_LIMIT}, query: $q) {
+              products(first: ${PRODUCT_QUERY_LIMIT}, query: $q) {
                 edges {
                   node {
                     id
@@ -231,8 +244,8 @@ export default {
           // Sort title search results: ACTIVE first, then DRAFT, then ARCHIVED
           results.sort((a, b) => (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99));
 
-          // Limit to 25 products
-          results = results.slice(0, PRODUCT_LIMIT);
+          // Limit the final response to 10 grouped products while retaining query capacity.
+          results = results.slice(0, GROUPED_PRODUCT_LIMIT);
         }
 
         return json({ products: results }, 200);
