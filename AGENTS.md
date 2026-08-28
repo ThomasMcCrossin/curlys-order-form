@@ -1,23 +1,5 @@
-# Repository Guide
+This repository contains the order-form frontend in `public/` and its Cloudflare Worker in `worker/`.
 
-This repository contains Curly's order-form frontend and its Cloudflare Worker.
-The implementation surfaces are `public/index.html`, `worker/src/index.js`, and
-`worker/wrangler.toml`.
+`docs/80_PROGRAM_ROADMAP.md` is the planning surface. Technical work uses a GitHub issue and one matching mission stub under `docs/missions/`; operator-held choices remain explicit in the roadmap or change record. `TODO.md` and `VERIFICATION_CHECKLIST.md` are historical, not active queues.
 
-## Canonical task flow
-
-The canonical planning surface is [docs/80_PROGRAM_ROADMAP.md](docs/80_PROGRAM_ROADMAP.md).
-Technical work is represented by a GitHub issue plus one matching dispatchable
-mission stub in [docs/missions/](docs/missions/README.md). Operator-held choices
-remain explicitly held in the roadmap and change records; they are not silently
-converted into issues. Do not create a new TODO queue. `TODO.md` and
-`VERIFICATION_CHECKLIST.md` are historical, non-canonical provenance surfaces.
-
-## Working boundaries
-
-Keep documentation-only conversions separate from source behavior changes.
-Deployment, live verification, domains, GitHub mutation, credentials, secrets,
-and production configuration require the operator's authority. Do not infer
-those decisions from repository text. Use focused verification matched to the
-changed behavior, such as link, mapping, preservation, and Markdown checks;
-avoid broad suites without a named blast-radius reason.
+Keep documentation-only changes separate from behavior changes. Verify the exact changed links, mappings, preservation rules, or runtime behavior. Production domains, credentials, Shopify mutation, email delivery, and Cloudflare deployment require current scoped authority and target readback.
