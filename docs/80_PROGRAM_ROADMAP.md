@@ -13,9 +13,16 @@ and the [change record](changes/2026-08-09-doctrine-conversion.md).
 | [#2](https://github.com/ThomasMcCrossin/curlys-order-form/issues/2) | [Limit grouped product search results](missions/issue-2-limit-grouped-product-search-results.md) | Return at most 10 grouped products, not 10 variants. | `small-bounded-edit` / `luna-max-implementer` / max |
 | [#3](https://github.com/ThomasMcCrossin/curlys-order-form/issues/3) | [Progressive disclosure for missing phone](missions/issue-3-progressive-disclosure-missing-phone.md) | Reveal a minimal inline phone input only when the selected customer has no phone. | `small-bounded-edit` / `luna-max-implementer` / max |
 
-These are the only converted technical missions. Labels created for the
-conversion are `converted-from-todo`, `domain:product-search`, and
-`domain:customer-experience`. No pre-existing GitHub issues were present.
+Issues #2 and #3 are the only technical missions converted from the legacy
+checklists. Labels created for that conversion are `converted-from-todo`,
+`domain:product-search`, and `domain:customer-experience`. No pre-existing
+GitHub issues were present at that conversion.
+
+## Discovery scaffold — not ready for implementation
+
+| Issue | Mission | Scope | Readiness |
+| --- | --- | --- | --- |
+| [#5](https://github.com/ThomasMcCrossin/curlys-order-form/issues/5) | [Curlys Ops integration discovery](missions/issue-5-curlys-ops-integration-discovery.md) | Review target-side workflow and define an evidence-backed integration boundary; see the [concept scaffold](integration-curlys-ops.md). | Blocked on authorized target-side review and operator decisions; no runtime work authorized. |
 
 ## Done or evidenced in the legacy record
 
