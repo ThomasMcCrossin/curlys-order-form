@@ -6,14 +6,14 @@ ready technical work. The legacy surfaces remain available only as historical
 provenance; see [TODO.md](../TODO.md), [VERIFICATION_CHECKLIST.md](../VERIFICATION_CHECKLIST.md),
 and the [change record](changes/2026-08-09-doctrine-conversion.md).
 
-## Ready technical work
+## Converted technical missions — implementation present, verification pending
 
-| Issue | Mission | Scope | Route |
+| Issue | Mission | Scope | Next check |
 | --- | --- | --- | --- |
-| [#2](https://github.com/ThomasMcCrossin/curlys-order-form/issues/2) | [Limit grouped product search results](missions/issue-2-limit-grouped-product-search-results.md) | Return at most 10 grouped products, not 10 variants. | `small-bounded-edit` / `luna-max-implementer` / max |
-| [#3](https://github.com/ThomasMcCrossin/curlys-order-form/issues/3) | [Progressive disclosure for missing phone](missions/issue-3-progressive-disclosure-missing-phone.md) | Reveal a minimal inline phone input only when the selected customer has no phone. | `small-bounded-edit` / `luna-max-implementer` / max |
+| [#2](https://github.com/ThomasMcCrossin/curlys-order-form/issues/2) | [Limit grouped product search results](missions/issue-2-limit-grouped-product-search-results.md) | Return at most 10 grouped products, not 10 variants. | Review commit `312eb64` against grouped/barcode/variant/title acceptance with focused deterministic checks. |
+| [#3](https://github.com/ThomasMcCrossin/curlys-order-form/issues/3) | [Progressive disclosure for missing phone](missions/issue-3-progressive-disclosure-missing-phone.md) | Reveal a minimal inline phone input only when the selected customer has no phone. | Review commit `19dd6fc` against missing/existing-phone UI behavior with focused checks. |
 
-These are the only converted technical missions. Labels created for the
+Read-only source review on 2026-09-23 found both implementation commits on `main`, while authenticated GitHub readback still showed both issues OPEN. This is **not** acceptance or deployment evidence; do not repeat the implementation or close either issue before the focused checks and owner review. Keep findings on the existing issues rather than opening duplicate missions. These are the only converted technical missions. Labels created for the
 conversion are `converted-from-todo`, `domain:product-search`, and
 `domain:customer-experience`. No pre-existing GitHub issues were present.
 
