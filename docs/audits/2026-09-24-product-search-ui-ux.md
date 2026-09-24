@@ -8,21 +8,32 @@
 
 - Branch: `feat/issue-6-search-relevance-audit` (branch-only; not merged to
   `origin/main`)
-- Evidence commits: `20ce50b` (mission), `d12fe91` (backend candidate), and
-  `8337bf9` (initial audit report)
+- Evidence commits: `20ce50b` (mission), `d12fe91` (backend candidate),
+  `8337bf9` (initial audit report), `acd42f7` (finalized audit branch evidence),
+  and `9b20c03` (branch tip, `revert: keep search candidate out of production`)
 - Backend candidate: committed at `d12fe91` (`fix: rank product search by title
-  and vendor`) on this branch (candidate logic; see §5)
+  and vendor`) and **recoverable only at that commit**; reverted at the branch tip
+  by `9b20c03` (see §1.1 and §5)
 - Mission stub: committed at `20ce50b` (`docs: define product search audit mission`)
 - Working tree: **clean** at closeout
-- No deployment, no Shopify/order/customer/inventory/email/Cloudflare mutation,
-  no credential or site-file access.
+- Worker source/tests at branch tip: identical to `origin/main` —
+  `git diff origin/main -- worker/src/index.js
+  worker/tests/product-search-cap.test.mjs` is empty
+- **Deployment incident:** pushing this branch triggered the configured Cloudflare
+  Worker auto-build, which briefly made the candidate live; `9b20c03` was then
+  auto-built and production was restored to baseline. Full record in §1.1. No
+  Shopify/order/customer/inventory/email mutation and no credential or site-file
+  access occurred.
 
 > **Reader warning — two different truths in this document.**
-> §4 describes **observed deployed behavior** (the live Pages UI and production
-> Worker as exercised read-only by Playwright and read-only search requests).
-> §5 describes the **branch-only candidate backend logic**, committed at
-> `d12fe91` on `feat/issue-6-search-relevance-audit` but **not merged, deployed,
-> or owner-accepted**. `origin/main` still carries the old behavior. Do not treat
+> §4 describes **observed production behavior**, which at report closeout is the
+> **restored baseline**: for `q=protein` the first five results again start with
+> Mutant BCAA 9.7, a discontinued Alani Nu bar, Grunt EAAs, Mutant Deluxe shaker,
+> and Mutant ISO Surge. §5 describes the **branch-only candidate backend logic**,
+> committed at `d12fe91` on `feat/issue-6-search-relevance-audit`, **reverted at
+> the branch tip (`9b20c03`) and never owner-accepted**. Production served that
+> candidate only transiently and unintentionally during the §1.1 incident;
+> `origin/main` and the current production Worker carry the baseline. Do not treat
 > §5 as the current state of production.
 
 ---
@@ -44,7 +55,39 @@ PII with wildcard CORS, and a DOM-XSS vector in the inline `onclick` handlers th
 interpolate raw JSON. These are documented in §7 as security follow-ups; they are
 out of the issue #6 scope to fix but must be tracked separately.
 
-The audit made **no UI or design changes** and deployed nothing.
+The audit made **no UI or design changes**. It did **not** intend or authorize a
+deployment; a transient, unintended deployment did occur and was corrected — see
+§1.1.
+
+### 1.1 Deployment / restoration incident (disclosed)
+
+Pushing the review branch triggered the **configured Cloudflare Worker
+auto-build**, which briefly made the review candidate at commit `d12fe91` live.
+This was **unauthorized and unintended**: no owner approval or deploy authority
+was requested or recorded, and the intent was a branch-only review. During that
+brief window, live readback for `q=protein` showed **title-first results** — the
+candidate ordering described in §5.
+
+The incident was corrected by commit **`9b20c03` (`revert: keep search candidate
+out of production`)**, which restored `worker/src/index.js` and
+`worker/tests/product-search-cap.test.mjs` **exactly** to `origin/main`. Its
+auto-build passed, and a subsequent live readback for `q=protein` again showed the
+**baseline first five** results, in order:
+
+1. Mutant BCAA 9.7
+2. a discontinued Alani Nu bar
+3. Grunt EAAs
+4. Mutant Deluxe shaker
+5. Mutant ISO Surge
+
+At closeout `git diff origin/main` for the worker source and tests is **empty**, so
+current production is the **restored baseline**. The candidate remains recoverable
+**only as commit `d12fe91`**; it is not present at the branch tip.
+
+**Standing constraint.** Evaluating or shipping that candidate in future requires
+explicit **owner approval**, and Cloudflare's branch auto-deploy must be
+**isolated or disabled first**, so that pushing a review branch cannot change
+production again.
 
 ---
 
@@ -76,9 +119,10 @@ it is marked **[supplied evidence]**.
 
 ### 2.3 Non-goals honoured
 
-No deployment; no visual redesign; no customer-search data collection; no Shopify
-mutation; no secret access; no unrelated refactor; no changes to `public/`,
-`worker/src`, the roadmap, or the mission stub.
+No intended or authorized deployment (the unintended auto-build incident in §1.1
+is disclosed and was reverted); no visual redesign; no customer-search data
+collection; no Shopify mutation; no secret access; no unrelated refactor; no
+changes to `public/`, `worker/src`, the roadmap, or the mission stub.
 
 ---
 
@@ -109,8 +153,9 @@ fixes `.submit-section` to the bottom; input font-size is `14px` (§4.9).
 
 ## 4. Observed deployed behavior
 
-This section is the live, production behavior. All examples use public product
-names/terms only; no customer data appears.
+This section describes the live production behavior, which at report closeout is
+the **restored baseline** (see §1.1). All examples use public product names/terms
+only; no customer data appears.
 
 ### 4.1 Search-mode reliability ranking
 
@@ -228,13 +273,14 @@ an observable inconsistency in the same form.
 
 ---
 
-## 5. Branch-only candidate backend logic (committed, NOT deployed)
+## 5. Branch-only candidate backend logic (committed at `d12fe91`, reverted at branch tip)
 
 > This section documents the candidate logic committed at `d12fe91` on
-> `feat/issue-6-search-relevance-audit` only. It is **committed but not merged,
-> not deployed, and not owner-accepted**, runs only against offline fixtures, and
-> leaves the deployed behavior in §4 unchanged. `origin/main` still carries the
-> old behavior.
+> `feat/issue-6-search-relevance-audit` only. It is **committed but reverted at the
+> branch tip (`9b20c03`), not merged, and not owner-accepted**. It runs against
+> offline fixtures; its only live exposure was the brief unintended auto-build
+> window in §1.1, since corrected. Production and `origin/main` carry the baseline
+> behavior in §4.
 
 Commit `d12fe91` modifies `worker/src/index.js` (new `rankProductCandidates`
 helper, an `isIdentifierShaped` gate, and a rewritten `/api/products/search`
@@ -283,8 +329,9 @@ only demonstrated by offline fixtures, not by a production readback.
 
 The candidate ordering (title → vendor → identifier → variant → metadata) matches
 the issue #6 acceptance criteria. This is a deliberate divergence from the
-observed deployed ordering in §4.1 and must be reviewed by the owner before any
-deployment.
+observed deployed ordering in §4.1 and must be reviewed and explicitly **approved
+by the owner** — with branch auto-deploy isolated or disabled first (§1.1) —
+before any deployment.
 
 ---
 
@@ -385,9 +432,9 @@ HTML-attribute-escape the payload; add a CSP and output-encoding tests.
 
 ## 8. What the branch-only candidate backend logic does and does not address
 
-| Finding | Addressed by candidate `rankProductCandidates` (commit `d12fe91`, not merged/deployed)? |
+| Finding | Addressed by candidate `rankProductCandidates` (commit `d12fe91`, reverted at branch tip, not merged)? |
 | --- | --- |
-| H1 title buried | Yes, by design (title 0–3 before vendor/identifier/metadata) — unverified live |
+| H1 title buried | Yes, by design (title 0–3 before vendor/identifier/metadata) — title-first ordering was briefly observed live only during the §1.1 window; otherwise fixture-only |
 | H2 ACTIVE-last | Yes, `?? 99` replaces `|| 99` — verified by offline fixtures |
 | H3 stale response | No — frontend change, untouched |
 | M1/M2/M3/M4/M5 | No — UI/design/a11y, untouched |
@@ -406,23 +453,32 @@ Run from the repository root:
 # 1) Offline search + phone fixtures (no network, no secrets; uses fixture.invalid)
 node --test worker/tests/*.test.mjs
 
-# Per-file counts:
-node --test worker/tests/product-search-cap.test.mjs   # 13 tests (candidate logic)
+# Per-file counts at the branch tip (baseline logic restored):
+node --test worker/tests/product-search-cap.test.mjs   # 3 tests
 node --test worker/tests/phone-progressive.test.mjs    # 2 tests
 
 # 2) Whitespace / conflict-marker check on the working tree
 git diff --check
 
-# 3) Confirm the branch-only candidate logic is committed but not merged/deployed
+# 3) Confirm the branch tip restored the baseline worker source/tests exactly
 git status --short          # expect: clean
+git diff origin/main -- worker/src/index.js worker/tests/product-search-cap.test.mjs  # expect: empty
+git show --stat 9b20c03     # the restoration commit (worker src + tests only)
 git log --oneline --all --grep='product search'  # show mission, candidate, and report history
 git branch --show-current   # expect: feat/issue-6-search-relevance-audit
 ```
 
-**Observed result on 2026-09-24** (Node v22.22.3): `node --test worker/tests/*.test.mjs`
-→ **15 tests (13 product-search + 2 phone), 15 pass, 0 fail**; `git diff --check`
-→ clean (exit 0). The tests stub `globalThis.fetch` and assert the Shopify host is
-`fixture.invalid`; they make no live request.
+**Observed result at the branch tip** (Node v22.22.3, after `9b20c03`):
+`node --test worker/tests/*.test.mjs` → **5 tests (3 product-search + 2 phone),
+5 pass, 0 fail**; `git diff --check` → clean (exit 0). The tests stub
+`globalThis.fetch` and assert the Shopify host is `fixture.invalid`; they make no
+live request.
+
+**Historical candidate evidence — `d12fe91` only.** As recorded during the
+original audit, the candidate commit's fixture run was **15 tests (13
+product-search + 2 phone), 15 pass, 0 fail**. That 15/15 count belongs to
+`d12fe91`; it is not the branch-tip count and does not describe the current worker
+source or tests.
 
 ### Manual read-only replay (for reviewers, if authorized)
 
@@ -442,8 +498,10 @@ against the customer endpoint for data-collection purposes.
   the 134 targeted queries are **supplied session evidence**; they are not
   reproducible from this repository alone, and raw traces/screenshots are not
   stored here.
-- No live Shopify Admin readback was performed, so the deployed Worker's exact
-  revision is inferred from the branch state, not from a deployment receipt.
+- No live Shopify Admin readback was performed, and no Cloudflare deployment
+  receipt was captured for the §1.1 auto-build, so the exact revision served in
+  that brief window is inferred from the push/auto-build sequence and the
+  `q=protein` readback, not from a deployment record.
 - The candidate backend logic (commit `d12fe91`) was exercised **only** against
   offline fixtures. Its
   Shopify query syntax (suffix wildcards such as `title:word*`, the
@@ -459,10 +517,16 @@ against the customer endpoint for data-collection purposes.
 
 ---
 
-## 11. No-deployment and no-change statement
+## 11. Deployment and change statement
 
-- **No deployment was performed.** No Cloudflare Pages publish, Worker deploy,
-  `wrangler deploy`, domain change, or DNS change occurred.
+- **No *authorized* deployment was performed.** No Cloudflare Pages publish,
+  Worker deploy, `wrangler deploy`, domain change, or DNS change was requested,
+  approved, or executed by this audit. However, pushing the review branch
+  triggered the configured Cloudflare Worker auto-build, which **briefly and
+  unintentionally made the candidate at `d12fe91` live** (§1.1). That window was
+  corrected by `9b20c03`, whose auto-build passed and restored the baseline;
+  `git diff origin/main` for the worker source and tests is empty, so current
+  production is the restored baseline.
 - **No Shopify mutation occurred.** No order, draft order, customer, inventory,
   email, or product was created or modified.
 - **No customer data was recorded.**
@@ -474,10 +538,11 @@ against the customer endpoint for data-collection purposes.
   The `worker/src/index.js` and `worker/tests/product-search-cap.test.mjs` changes
   are committed separately at `d12fe91` on this branch.
 - **Committed on a branch only.** The candidate backend logic (`d12fe91`), the
-  mission stub (`20ce50b`), and this report (`8337bf9`) live on
-  `feat/issue-6-search-relevance-audit`. The branch is **not merged**;
-  `origin/main` still carries the old behavior. Nothing is deployed and no owner
-  acceptance has been recorded.
+  mission stub (`20ce50b`), this report (`8337bf9`), and the restoration commit
+  (`9b20c03`) live on `feat/issue-6-search-relevance-audit`. The branch is **not
+  merged**; `origin/main` carries the baseline behavior. Production is the
+  **restored baseline**; the candidate survives only as commit `d12fe91`, and no
+  owner acceptance has been recorded.
 
 ---
 
@@ -487,9 +552,11 @@ against the customer endpoint for data-collection purposes.
    remove reliance on the client-side password (finding S1).
 2. **P0 security** — eliminate the inline-`onclick` JSON XSS vector and add
    output-encoding/CSP tests (finding S2).
-3. **P1 relevance** — review and, if approved, merge and deploy the branch-only
-   candidate title-first ranking (commit `d12fe91`) plus the ACTIVE-first fix;
-   live-verify against production readback before accepting.
+3. **P1 relevance — do not merge or deploy directly.** The title-first candidate
+   (commit `d12fe91`) plus the ACTIVE-first fix may be proposed only after
+   **(a)** explicit owner approval is recorded and **(b)** Cloudflare's branch
+   auto-deploy is isolated or disabled, so a review push cannot change production
+   (§1.1). Only then re-verify live against production readback before accepting.
 4. **P1 correctness** — add a request sequence guard/`AbortController` to the
    product search fetch (finding H3).
 5. **P2 UX/a11y** — add click-outside dismissal, keyboard operability, ARIA
