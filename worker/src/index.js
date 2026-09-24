@@ -56,61 +56,198 @@ export default {
     // === NEW: PRODUCT SEARCH API ===
     if (url.pathname === "/api/products/search" && request.method === "GET") {
       try {
-        const query = (url.searchParams.get("q") || "").trim();
-        if (query.length < 2) return json({ products: [] }, 200);
+        const query = url.searchParams.get("q");
+        if (!query || query.length < 2) {
+          return json({ products: [] }, 200);
+        }
 
+        // Use GraphQL for more efficient product search
+        const searchQuery = query.trim();
         const STATUS_FILTER = "(status:ACTIVE OR status:DRAFT OR status:ARCHIVED)";
-        const VARIANT_STATUS_FILTER = "(product_status:ACTIVE OR product_status:DRAFT OR product_status:ARCHIVED)";
-        // Reduce user input to literal, punctuation-free tokens so it can never become a
-        // Shopify field operator, boolean operator, or wildcard. Lowercasing also keeps an
-        // uppercase AND/OR/NOT typed by a user literal instead of a boolean operator.
-        const words = (query.match(/[\p{L}\p{N}]+/gu) || []).map(word => word.toLocaleLowerCase());
-        if (!words.length) return json({ products: [] }, 200);
+        const PRODUCT_QUERY_LIMIT = 25;
+        const GROUPED_PRODUCT_LIMIT = 10;
+        const VARIANTS_PER_PRODUCT_LIMIT = 25;
+        const VARIANT_TEXT_LIMIT = 100;
+        const statusOrder = { ACTIVE: 0, DRAFT: 1, ARCHIVED: 2 };
 
-        // Shopify documents a trailing wildcard (suffix) as the supported wildcard form, and
-        // it performs a prefix match on the term. Leading wildcards such as title:*word are
-        // unsupported, so every token gets a suffix wildcard instead.
-        const titleTerms = words.map(word => `title:${word}*`).join(" AND ");
-        const vendorTerms = words.map(word => `vendor:${word}*`).join(" AND ");
-        // Broad recall: the same sanitized tokens, unquoted, so a multi-word query is not
-        // reduced to an exact phrase and partial token matches still surface candidates.
-        const broadTerms = words.join(" ");
-        const identifier = `"${query.replace(/[\\"]/g, "\\$&")}"`;
-        const PRODUCT_FIELDS = `id title vendor status featuredImage { url(transform: { maxWidth: 100 }) }`;
-        const GROUPED_PRODUCT_FIELDS = `${PRODUCT_FIELDS}
-          variants(first: 25) { edges { node { legacyResourceId barcode sku title displayName price inventoryQuantity } } }`;
-        const VARIANT_FIELDS = `legacyResourceId barcode sku title displayName price inventoryQuantity
-          product { ${PRODUCT_FIELDS} }`;
-        const productSearch = filter => shopifyGraphQL(env,
-          `query($q:String!) { products(first: 25, query: $q) { edges { node { ${GROUPED_PRODUCT_FIELDS} } } } }`,
-          { q: `(${filter}) AND ${STATUS_FILTER}` });
-        const variantSearch = filter => shopifyGraphQL(env,
-          `query($q:String!) { productVariants(first: 100, query: $q) { edges { node { ${VARIANT_FIELDS} } } } }`,
-          { q: `(${filter}) AND ${VARIANT_STATUS_FILTER}` });
-        // Fail soft per source: an unavailable or broken source contributes no candidates
-        // but must not discard the candidates the other sources already found.
-        const settle = promise => promise.catch(error => {
-          console.error("Product search source failed:", error?.message || error);
-          return null;
-        });
-        const [titleData, vendorData, broadData, variantData, identifierData] = await Promise.all([
-          settle(productSearch(titleTerms)),
-          settle(productSearch(vendorTerms)),
-          settle(productSearch(broadTerms)),
-          settle(variantSearch(broadTerms)),
-          // The dedicated barcode/SKU lookup only makes sense for identifier-shaped input.
-          isIdentifierShaped(query) ? settle(variantSearch(`barcode:${identifier} OR sku:${identifier}`)) : null
-        ]);
+        // Try barcode search first if query looks like a barcode (numbers/alphanumeric)
+        let results = [];
 
-        const productEdges = [
-          ...(titleData?.products?.edges || []),
-          ...(vendorData?.products?.edges || []),
-          ...(broadData?.products?.edges || [])
-        ];
-        const results = rankProductCandidates(query,
-          identifierData?.productVariants?.edges || [],
-          variantData?.productVariants?.edges || [],
-          productEdges);
+        // Search by barcode using GraphQL (include all statuses: active, draft, archived)
+        const barcodeData = await shopifyGraphQL(env, `
+          query($q:String!) {
+            productVariants(first: ${PRODUCT_QUERY_LIMIT}, query: $q) {
+              edges {
+                node {
+                  legacyResourceId
+                  barcode
+                  sku
+                  displayName
+                  price
+                  inventoryQuantity
+                  product {
+                    id
+                    title
+                    vendor
+                    status
+                    featuredImage {
+                      url(transform: { maxWidth: 100 })
+                    }
+                  }
+                }
+              }
+            }
+          }
+        `, { q: `(barcode:${searchQuery}) AND ${STATUS_FILTER}` });
+
+        results = (barcodeData?.productVariants?.edges || []).map(edge => ({
+          productId: edge.node.product.id,
+          type: 'variant', // Mark as individual variant (barcode match)
+          variantId: edge.node.legacyResourceId,
+          productTitle: edge.node.product.title,
+          vendor: edge.node.product.vendor || "",
+          status: edge.node.product.status,
+          variantTitle: edge.node.displayName || "Default Title",
+          price: edge.node.price,
+          sku: edge.node.sku || "",
+          barcode: edge.node.barcode || "",
+          inventoryQuantity: edge.node.inventoryQuantity || 0,
+          image: edge.node.product.featuredImage?.url || null
+        }));
+
+        // Sort barcode results: ACTIVE first, then DRAFT, then ARCHIVED
+        results.sort((a, b) => (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99));
+
+        // Keep barcode matches as individual variants, but cap their distinct parent products.
+        const barcodeProductIds = new Set();
+        results = results
+          .filter(result => {
+            if (barcodeProductIds.has(result.productId)) return true;
+            if (barcodeProductIds.size >= GROUPED_PRODUCT_LIMIT) return false;
+            barcodeProductIds.add(result.productId);
+            return true;
+          })
+          .map(({ productId, ...result }) => result);
+
+        // If no barcode matches, search variants by text so variant-only terms are discoverable
+        if (results.length === 0) {
+          const variantData = await shopifyGraphQL(env, `
+            query($q:String!) {
+              productVariants(first: ${VARIANT_TEXT_LIMIT}, query: $q) {
+                edges {
+                  node {
+                    legacyResourceId
+                    barcode
+                    sku
+                    displayName
+                    price
+                    inventoryQuantity
+                    product {
+                      id
+                      title
+                      vendor
+                      status
+                      featuredImage {
+                        url(transform: { maxWidth: 100 })
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          `, { q: `${searchQuery} AND ${STATUS_FILTER}` });
+
+          const groupedResults = new Map();
+          (variantData?.productVariants?.edges || []).forEach(edge => {
+            const product = edge.node.product;
+            if (!product || !product.id) return;
+
+            if (!groupedResults.has(product.id)) {
+              groupedResults.set(product.id, {
+                type: 'product',
+                productTitle: product.title,
+                vendor: product.vendor || "",
+                status: product.status,
+                image: product.featuredImage?.url || null,
+                variants: []
+              });
+            }
+
+            const groupedProduct = groupedResults.get(product.id);
+            if (groupedProduct.variants.length >= VARIANTS_PER_PRODUCT_LIMIT) return;
+
+            groupedProduct.variants.push({
+              variantId: edge.node.legacyResourceId,
+              variantTitle: edge.node.displayName || "Default Title",
+              price: edge.node.price,
+              sku: edge.node.sku || "",
+              barcode: edge.node.barcode || "",
+              inventoryQuantity: edge.node.inventoryQuantity || 0
+            });
+          });
+
+          results = Array.from(groupedResults.values());
+
+          results.sort((a, b) => (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99));
+          results = results.slice(0, GROUPED_PRODUCT_LIMIT);
+        }
+
+        // Fallback: search by product title and include more variants per product
+        if (results.length === 0) {
+          const titleData = await shopifyGraphQL(env, `
+            query($q:String!) {
+              products(first: ${PRODUCT_QUERY_LIMIT}, query: $q) {
+                edges {
+                  node {
+                    id
+                    title
+                    vendor
+                    status
+                    featuredImage {
+                      url(transform: { maxWidth: 100 })
+                    }
+                    variants(first: ${VARIANTS_PER_PRODUCT_LIMIT}) {
+                      edges {
+                        node {
+                          legacyResourceId
+                          barcode
+                          sku
+                          displayName
+                          price
+                          inventoryQuantity
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          `, { q: `(title:*${searchQuery}*) AND ${STATUS_FILTER}` });
+
+          // Return grouped products with variants
+          results = (titleData?.products?.edges || []).map(edge => ({
+            type: 'product', // Mark as grouped product
+            productTitle: edge.node.title,
+            vendor: edge.node.vendor || "",
+            status: edge.node.status,
+            image: edge.node.featuredImage?.url || null,
+            variants: (edge.node.variants.edges || []).map(variantEdge => ({
+              variantId: variantEdge.node.legacyResourceId,
+              variantTitle: variantEdge.node.displayName || "Default Title",
+              price: variantEdge.node.price,
+              sku: variantEdge.node.sku || "",
+              barcode: variantEdge.node.barcode || "",
+              inventoryQuantity: variantEdge.node.inventoryQuantity || 0
+            }))
+          }));
+
+          // Sort title search results: ACTIVE first, then DRAFT, then ARCHIVED
+          results.sort((a, b) => (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99));
+
+          // Limit the final response to 10 grouped products while retaining query capacity.
+          results = results.slice(0, GROUPED_PRODUCT_LIMIT);
+        }
+
         return json({ products: results }, 200);
       } catch (e) {
         return json({ ok: false, error: e.message }, 500);
@@ -896,95 +1033,6 @@ export default {
     })());
   }
 };
-
-// Only spend the dedicated barcode/SKU lookup on input that could plausibly be an
-// identifier: no whitespace or query punctuation, and an identifier-ish shape. Ordinary
-// words stay on the title, vendor and broad text sources.
-function isIdentifierShaped(value) {
-  const candidate = String(value || "").trim();
-  if (candidate.length < 3 || candidate.length > 64) return false;
-  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(candidate)) return false;
-  // Require a digit or separator so plain words never trigger the identifier lookup.
-  return /[\d._-]/.test(candidate);
-}
-
-// Merge by parent before ranking: a Shopify search page may contain the same parent
-// in multiple candidate sources. Exact identifiers remain selectable variant rows.
-function rankProductCandidates(query, identifierEdges, variantEdges, productEdges) {
-  const parents = new Map();
-  const normalize = value => String(value || "").normalize("NFKD")
-    .replace(/\p{M}/gu, "").toLocaleLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
-  const normalized = normalize(query);
-  const queryTokens = normalized.split(" ").filter(Boolean);
-  const literal = String(query).trim().toLocaleLowerCase();
-  const statusOrder = { ACTIVE: 0, DRAFT: 1, ARCHIVED: 2 };
-  const variantPayload = node => ({
-    variantId: node.legacyResourceId,
-    variantTitle: node.title || node.displayName || "Default Title",
-    price: node.price,
-    sku: node.sku || "",
-    barcode: node.barcode || "",
-    inventoryQuantity: node.inventoryQuantity || 0
-  });
-  function add(product, nodes) {
-    if (!product?.id) return;
-    if (!parents.has(product.id)) parents.set(product.id, {
-      id: product.id, productTitle: product.title, vendor: product.vendor || "",
-      status: product.status, image: product.featuredImage?.url || null,
-      variants: new Map()
-    });
-    const parent = parents.get(product.id);
-    for (const node of nodes) {
-      if (node?.legacyResourceId != null && !parent.variants.has(String(node.legacyResourceId))) {
-        parent.variants.set(String(node.legacyResourceId), variantPayload(node));
-      }
-    }
-  }
-  for (const edge of productEdges) add(edge.node, (edge.node?.variants?.edges || []).map(e => e.node));
-  for (const edge of [...identifierEdges, ...variantEdges]) add(edge.node?.product, [edge.node]);
-
-  const matchQuality = value => {
-    const field = normalize(value);
-    if (!field || !normalized) return null;
-    if (field === normalized) return 0;
-    if (field.startsWith(normalized)) return 1;
-    if (field.includes(normalized)) return 2;
-    const fieldTokens = field.split(" ");
-    return queryTokens.every(token => fieldTokens.some(word => word.startsWith(token))) ? 3 : null;
-  };
-  const exactIdentifier = value => String(value || "").trim().toLocaleLowerCase() === literal;
-  const rank = parent => {
-    const titleQuality = matchQuality(parent.productTitle);
-    if (titleQuality != null) return titleQuality;
-    const vendorQuality = matchQuality(parent.vendor);
-    if (vendorQuality != null) return 10 + vendorQuality;
-    if ([...parent.variants.values()].some(v => exactIdentifier(v.barcode) || exactIdentifier(v.sku))) return 20;
-    const variantQualities = [...parent.variants.values()]
-      .map(v => matchQuality(v.variantTitle)).filter(value => value != null);
-    if (variantQualities.length) return 30 + Math.min(...variantQualities);
-    return 40;
-  };
-  const compare = (a, b) => rank(a) - rank(b)
-    || (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99)
-    || String(a.productTitle || "").localeCompare(String(b.productTitle || ""), "en")
-    || String(a.id).localeCompare(String(b.id), "en");
-  return [...parents.values()].sort(compare).slice(0, 10).flatMap(parent => {
-    const variants = [...parent.variants.values()]
-      .sort((a, b) => Number(exactIdentifier(b.barcode) || exactIdentifier(b.sku)) - Number(exactIdentifier(a.barcode) || exactIdentifier(a.sku))
-        || String(a.variantId).localeCompare(String(b.variantId), "en"));
-    if (rank(parent) === 20) {
-      return variants.filter(v => exactIdentifier(v.barcode) || exactIdentifier(v.sku)).map(v => ({
-        type: "variant", variantId: v.variantId, productTitle: parent.productTitle,
-        vendor: parent.vendor, status: parent.status, variantTitle: v.variantTitle,
-        price: v.price, sku: v.sku, barcode: v.barcode,
-        inventoryQuantity: v.inventoryQuantity, image: parent.image
-      }));
-    }
-    return [{ type: "product", productTitle: parent.productTitle, vendor: parent.vendor,
-      status: parent.status, image: parent.image, variants: variants.slice(0, 25) }];
-  });
-}
 
 /* ================= helpers ================= */
 
