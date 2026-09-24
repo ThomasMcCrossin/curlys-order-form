@@ -13,6 +13,12 @@ and the [change record](changes/2026-08-09-doctrine-conversion.md).
 | [#2](https://github.com/ThomasMcCrossin/curlys-order-form/issues/2) | [Limit grouped product search results](missions/issue-2-limit-grouped-product-search-results.md) | Return at most 10 grouped products, not 10 variants. | Commit `312eb64` plus deterministic barcode/variant/title fixture checks (`node --test worker/tests/*.test.mjs`) passed locally on 2026-09-23; owner acceptance/review remains. |
 | [#3](https://github.com/ThomasMcCrossin/curlys-order-form/issues/3) | [Progressive disclosure for missing phone](missions/issue-3-progressive-disclosure-missing-phone.md) | Reveal a minimal inline phone input only when the selected customer has no phone. | Commit `19dd6fc` plus disposable-DOM missing/existing-phone fixture checks (`node --test worker/tests/*.test.mjs`) passed locally on 2026-09-23; owner acceptance/review remains. |
 
+## Ready technical work
+
+| Issue | Mission | Scope | Route |
+| --- | --- | --- | --- |
+| [#6](https://github.com/ThomasMcCrossin/curlys-order-form/issues/6) | [Product-search relevance and UI/UX audit](missions/issue-6-search-relevance-ui-audit.md) | Audit responsive search UX and rank title matches before vendor and broader metadata matches. | `multi-surface-audit` / parallel specialists, then bounded implementation |
+
 Read-only source review on 2026-09-23 found both implementation commits on `main`, while authenticated GitHub readback still showed both issues OPEN. Focused local fixtures now pass, but they are **not** owner acceptance or deployment evidence; do not repeat the implementation or close either issue before review. Keep findings on the existing issues rather than opening duplicate missions. These are the only converted technical missions. Labels created for the
 conversion are `converted-from-todo`, `domain:product-search`, and
 `domain:customer-experience`. No pre-existing GitHub issues were present.
