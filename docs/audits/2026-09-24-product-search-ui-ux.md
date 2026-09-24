@@ -4,21 +4,26 @@
 **Mission.** [`docs/missions/issue-6-search-relevance-ui-audit.md`](../missions/issue-6-search-relevance-ui-audit.md)
 **Report type.** Durable, read-only findings. Documentation only.
 **Audit date.** 2026-09-24
-**Repository state at audit time.**
+**Repository state at report closeout.**
 
-- Branch: `feat/issue-6-search-relevance-audit`
-- `HEAD`: `20ce50b` (`docs: define product search audit mission`)
-- Working tree: **uncommitted** modifications to `worker/src/index.js` and
-  `worker/tests/product-search-cap.test.mjs` (proposed backend logic; see §5)
+- Branch: `feat/issue-6-search-relevance-audit` (branch-only; not merged to
+  `origin/main`)
+- Evidence commits: `20ce50b` (mission), `d12fe91` (backend candidate), and
+  `8337bf9` (initial audit report)
+- Backend candidate: committed at `d12fe91` (`fix: rank product search by title
+  and vendor`) on this branch (candidate logic; see §5)
+- Mission stub: committed at `20ce50b` (`docs: define product search audit mission`)
+- Working tree: **clean** at closeout
 - No deployment, no Shopify/order/customer/inventory/email/Cloudflare mutation,
   no credential or site-file access.
 
 > **Reader warning — two different truths in this document.**
 > §4 describes **observed deployed behavior** (the live Pages UI and production
 > Worker as exercised read-only by Playwright and read-only search requests).
-> §5 describes **uncommitted proposed backend logic** that exists only in the
-> working tree on this branch. Nothing in §5 is live, deployed, or owner-accepted.
-> Do not treat §5 as the current state of production.
+> §5 describes the **branch-only candidate backend logic**, committed at
+> `d12fe91` on `feat/issue-6-search-relevance-audit` but **not merged, deployed,
+> or owner-accepted**. `origin/main` still carries the old behavior. Do not treat
+> §5 as the current state of production.
 
 ---
 
@@ -64,7 +69,8 @@ Shopify object was created, updated, or deleted.
 The Playwright viewport runs, the 112-parent/272-variant sample, and the 134
 targeted queries are **supplied audit evidence for this session** (the "DeepSeek
 audit"). The code-level findings in §4.6–§4.9 and §5 are independently
-**re-verified in this repository** against `HEAD` and the working tree. Where a
+**re-verified in this repository** against the branch history (deployed-behavior
+findings against the pre-fix state; candidate logic at commit `d12fe91`). Where a
 claim rests only on supplied evidence and cannot be re-run from this repository,
 it is marked **[supplied evidence]**.
 
@@ -222,13 +228,15 @@ an observable inconsistency in the same form.
 
 ---
 
-## 5. Uncommitted proposed backend logic (NOT deployed)
+## 5. Branch-only candidate backend logic (committed, NOT deployed)
 
-> This section documents working-tree changes only. They are **uncommitted**, run
-> only against offline fixtures, and have **not** been deployed or owner-accepted.
-> The live behavior in §4 is unchanged by them.
+> This section documents the candidate logic committed at `d12fe91` on
+> `feat/issue-6-search-relevance-audit` only. It is **committed but not merged,
+> not deployed, and not owner-accepted**, runs only against offline fixtures, and
+> leaves the deployed behavior in §4 unchanged. `origin/main` still carries the
+> old behavior.
 
-The working tree modifies `worker/src/index.js` (new `rankProductCandidates`
+Commit `d12fe91` modifies `worker/src/index.js` (new `rankProductCandidates`
 helper, an `isIdentifierShaped` gate, and a rewritten `/api/products/search`
 handler) and `worker/tests/product-search-cap.test.mjs` (13 rewritten tests).
 Key properties:
@@ -266,14 +274,14 @@ Key properties:
    unavailable or broken source contributes no candidates but cannot discard
    candidates the other sources already found.
 
-**Proposed-logic limitations to keep explicit:** it issues up to five concurrent
+**Candidate-logic limitations to keep explicit:** it issues up to five concurrent
 Shopify queries per search (four text sources plus the gated identifier lookup) —
 an API-cost/latency trade-off; it still scans `first: 100` variants; the suffix
 wildcard behavior (`title:word*`) and the `product_status:` variant filter depend
 on Shopify search behavior and were **not live-verified**; and its correctness is
 only demonstrated by offline fixtures, not by a production readback.
 
-The proposed ordering (title → vendor → identifier → variant → metadata) matches
+The candidate ordering (title → vendor → identifier → variant → metadata) matches
 the issue #6 acceptance criteria. This is a deliberate divergence from the
 observed deployed ordering in §4.1 and must be reviewed by the owner before any
 deployment.
@@ -322,7 +330,7 @@ Priority uses P0 (security, fix/track immediately) → P3 (polish).
 ## 7. Security follow-ups (separate track — out of issue #6 scope)
 
 These were found while auditing the same search surfaces but are **not** product
-relevance defects and are **not** fixed by the proposed backend logic. They must
+relevance defects and are **not** fixed by the candidate backend logic. They must
 be tracked on their own with current scoped authority. No customer data is
 reproduced here.
 
@@ -375,9 +383,9 @@ HTML-attribute-escape the payload; add a CSP and output-encoding tests.
 
 ---
 
-## 8. What the proposed backend logic does and does not address
+## 8. What the branch-only candidate backend logic does and does not address
 
-| Finding | Addressed by uncommitted `rankProductCandidates`? |
+| Finding | Addressed by candidate `rankProductCandidates` (commit `d12fe91`, not merged/deployed)? |
 | --- | --- |
 | H1 title buried | Yes, by design (title 0–3 before vendor/identifier/metadata) — unverified live |
 | H2 ACTIVE-last | Yes, `?? 99` replaces `|| 99` — verified by offline fixtures |
@@ -399,15 +407,16 @@ Run from the repository root:
 node --test worker/tests/*.test.mjs
 
 # Per-file counts:
-node --test worker/tests/product-search-cap.test.mjs   # 13 tests (proposed logic)
+node --test worker/tests/product-search-cap.test.mjs   # 13 tests (candidate logic)
 node --test worker/tests/phone-progressive.test.mjs    # 2 tests
 
 # 2) Whitespace / conflict-marker check on the working tree
 git diff --check
 
-# 3) Confirm the uncommitted proposed logic is not committed
-git status --short          # expect: M worker/src/index.js, M worker/tests/product-search-cap.test.mjs
-git log --oneline -1        # expect: 20ce50b docs: define product search audit mission
+# 3) Confirm the branch-only candidate logic is committed but not merged/deployed
+git status --short          # expect: clean
+git log --oneline --all --grep='product search'  # show mission, candidate, and report history
+git branch --show-current   # expect: feat/issue-6-search-relevance-audit
 ```
 
 **Observed result on 2026-09-24** (Node v22.22.3): `node --test worker/tests/*.test.mjs`
@@ -435,7 +444,8 @@ against the customer endpoint for data-collection purposes.
   stored here.
 - No live Shopify Admin readback was performed, so the deployed Worker's exact
   revision is inferred from the branch state, not from a deployment receipt.
-- The proposed backend logic was exercised **only** against offline fixtures. Its
+- The candidate backend logic (commit `d12fe91`) was exercised **only** against
+  offline fixtures. Its
   Shopify query syntax (suffix wildcards such as `title:word*`, the
   `product_status:` variant filter, unquoted broad tokens, and identifier quoting)
   is **not live-verified**; Shopify search semantics may differ in production.
@@ -459,11 +469,15 @@ against the customer endpoint for data-collection purposes.
 - **No UI or design changes were made.** `public/index.html` and
   `public/dashboard.html` are untouched. The audit changed no CSS, markup, copy,
   layout, or interaction behavior.
-- **No source, roadmap, or mission changes were made by this report.** The only
-  file created is this report. The uncommitted `worker/src/index.js` and
-  `worker/tests/product-search-cap.test.mjs` modifications pre-existed this report
-  and were **not** authored or altered by it.
-- **Nothing was committed.** This report is an untracked working-tree file.
+- **No source, roadmap, or mission changes were made by this report.** This
+  report records the audit only; it did not author the candidate backend logic.
+  The `worker/src/index.js` and `worker/tests/product-search-cap.test.mjs` changes
+  are committed separately at `d12fe91` on this branch.
+- **Committed on a branch only.** The candidate backend logic (`d12fe91`), the
+  mission stub (`20ce50b`), and this report (`8337bf9`) live on
+  `feat/issue-6-search-relevance-audit`. The branch is **not merged**;
+  `origin/main` still carries the old behavior. Nothing is deployed and no owner
+  acceptance has been recorded.
 
 ---
 
@@ -473,9 +487,9 @@ against the customer endpoint for data-collection purposes.
    remove reliance on the client-side password (finding S1).
 2. **P0 security** — eliminate the inline-`onclick` JSON XSS vector and add
    output-encoding/CSP tests (finding S2).
-3. **P1 relevance** — review and, if approved, deploy the proposed
-   title-first ranking plus the ACTIVE-first fix; live-verify against production
-   readback before accepting.
+3. **P1 relevance** — review and, if approved, merge and deploy the branch-only
+   candidate title-first ranking (commit `d12fe91`) plus the ACTIVE-first fix;
+   live-verify against production readback before accepting.
 4. **P1 correctness** — add a request sequence guard/`AbortController` to the
    product search fetch (finding H3).
 5. **P2 UX/a11y** — add click-outside dismissal, keyboard operability, ARIA
