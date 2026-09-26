@@ -2039,6 +2039,227 @@
         transform: translateY(0);
       }
     }
+
+    /* ========== OVERFLOW & VIEWPORT HARDENING ========== */
+    /* Long unbroken tokens (brand names, SKUs, emails, order refs) must wrap inside their box. */
+    .order-info h3 > span,
+    .item-title,
+    .inline-note,
+    .reminder-details,
+    .toast-message,
+    .modal h2,
+    .modal-body,
+    .supplier-bucket h3,
+    .supplier-item-name,
+    .supplier-item-meta,
+    .supplier-table td,
+    .login-error {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    /* Reserve checkbox space only beside the title, not the whole header. */
+    .order-header {
+      padding-right: 0;
+    }
+
+    .order-info h3 {
+      padding-right: 36px;
+    }
+
+    .supplier-queue-grid {
+      grid-template-columns: repeat(auto-fit, minmax(min(660px, 100%), 1fr));
+    }
+
+    .supplier-table th {
+      white-space: nowrap;
+    }
+
+    /* left:50% makes the fixed bar shrink-to-fit half the viewport; size it to content instead. */
+    .bulk-actions-bar {
+      width: max-content;
+    }
+
+    /* Load-error markup is injected inside .loading; avoid a card nested in a card. */
+    .loading .empty {
+      border: 0;
+      box-shadow: none;
+      background: transparent;
+      padding: 0;
+    }
+
+    /* Tags that wrap to several lines read better as soft rectangles than capsules. */
+    .item-tag {
+      border-radius: 8px;
+    }
+
+    .orders-container {
+      grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
+    }
+
+    body.density-compact .orders-container {
+      grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
+    }
+
+    .toast-container {
+      max-width: min(400px, calc(100vw - 40px));
+    }
+
+    .toast {
+      min-width: 0;
+    }
+
+    .toast-close {
+      flex-shrink: 0;
+    }
+
+    /* Login card stacks vertically (JS sets display:flex). */
+    .login-container {
+      flex-direction: column;
+      width: calc(100% - 32px);
+    }
+
+    .login-form .btn,
+    .toolbar-controls .btn,
+    .empty .btn {
+      justify-content: center;
+    }
+
+    /* Six metric cards: 3+3 instead of a ragged 4+2 on tablets/small laptops. */
+    @media (min-width: 761px) and (max-width: 1140px) {
+      .summary-strip {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 900px) {
+      .toolbar-controls {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .toolbar-select,
+      .toolbar-controls .btn {
+        width: 100%;
+        min-width: 0;
+      }
+    }
+
+    /* Touch targets on phones/tablets */
+    @media (max-width: 900px), (pointer: coarse) {
+      .density-btn {
+        min-height: 40px;
+      }
+
+      .secondary-actions summary,
+      .reminder-panel summary {
+        min-height: 44px;
+      }
+
+      body.density-compact .action-row .btn {
+        min-height: 42px;
+      }
+
+      .order-checkbox::before {
+        content: "";
+        position: absolute;
+        inset: -10px;
+      }
+
+      .toast-close {
+        width: 40px;
+        height: 40px;
+      }
+
+      .undo-notification .btn {
+        min-height: 40px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .login-container {
+        margin: 32px auto;
+        padding: 32px 22px;
+      }
+
+      .modal-overlay {
+        padding: 10px;
+      }
+
+      .modal {
+        padding: 22px 18px;
+      }
+
+      .modal h2 {
+        font-size: 20px;
+        margin-bottom: 14px;
+      }
+
+      .order-meta-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .meta-stat:nth-child(n+3) {
+        grid-column: 1 / -1;
+      }
+
+      .toast-container {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        max-width: none;
+      }
+
+      .toast {
+        padding: 12px 8px 12px 14px;
+        gap: 10px;
+      }
+
+      .bulk-actions-bar {
+        width: calc(100vw - 20px);
+        bottom: 10px;
+        padding: 12px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .bulk-actions-bar .bulk-count {
+        grid-column: 1 / -1;
+        text-align: center;
+      }
+
+      .bulk-actions-bar .bulk-divider {
+        display: none;
+      }
+
+      .bulk-actions-bar .btn {
+        justify-content: center;
+        padding: 10px 12px;
+        min-height: 44px;
+      }
+    }
+
+    @media (max-width: 430px) {
+      .toolbar-controls {
+        grid-template-columns: 1fr;
+      }
+
+      .header-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .header-actions .meta-pill,
+      .header-actions .density-toggle {
+        grid-column: 1 / -1;
+      }
+
+      .meta-pill {
+        white-space: normal;
+        text-align: center;
+      }
+    }
   </style>
 </head>
 <body>
