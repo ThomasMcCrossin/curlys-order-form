@@ -25,33 +25,35 @@
   record in §1.1. No Shopify/order/customer/inventory/email mutation and no
   credential or site-file access occurred.
 
-**Current state — status update 2026-09-26 (full record in §1.2).**
+**Current state — deployment closeout 2026-09-26 (full record in §1.2).**
 
-- Branch `feat/issue-6-search-relevance-audit` tip is now `4b426e7`
-  (`Revert "revert: keep search candidate out of production"`), which restores the
-  candidate after explicit **owner authorization**.
-- Worker source/tests at the branch tip now **differ from `origin/main`**;
-  `git diff origin/main -- worker/src/index.js
-  worker/tests/product-search-cap.test.mjs` is non-empty.
-- **The candidate is live in production.** The branch push to `4b426e7` passed its
-  Cloudflare **Pages** and **Workers** checks (Worker build
-  `14339479-35cc-4d45-8f8e-3aa12c02ad89`), and a live Worker readback returned
-  **HTTP 200** with title-first ordering (§1.2). The earlier statement that
-  current production is the baseline no longer holds.
-- **Merge to `main` is still pending** at this documentation step: `origin/main`
-  is `f8a27f6` and does not yet carry the candidate. Production serves the
-  candidate from the `4b426e7` branch deploy, not from `main`.
+- The candidate backend logic is **merged to `main`**. PR #7
+  (`feat/issue-6-search-relevance-audit`) merged at merge commit
+  **`a699a5669fe1ed768b851b41da9943e380f61580`** on **2026-09-26**; issue
+  [#6](https://github.com/ThomasMcCrossin/curlys-order-form/issues/6) is
+  **CLOSED**.
+- Worker source/tests on `main` now **are** the candidate:
+  `git diff origin/main -- worker/src/index.js worker/tests/product-search-cap.test.mjs`
+  is **empty** at the merge commit.
+- **The candidate is live in production.** The merge-triggered Cloudflare
+  **Pages** and **Workers** checks passed (final Worker build
+  `1830aac0-9901-4972-b824-d702777d57bf`), and a post-merge live Worker readback
+  returned **HTTP 200** with title-first ordering (§1.2). The earlier statement
+  that current production is the baseline no longer holds.
+- **Tests on `origin/main` (`a699a56`).**
+  `node --test worker/tests/*.test.mjs` → **15/15 pass**; `git diff --check` →
+  clean.
 
 > **Reader warning — mind the date of each section.**
 > §4 records the **pre-fix baseline behavior observed in production on
 > 2026-09-24**: for `q=protein` the first five results then started with Mutant
 > BCAA 9.7, a discontinued Alani Nu bar, Grunt EAAs, Mutant Deluxe shaker, and
 > Mutant ISO Surge. That observation is now historical. §5 documents the
-> **candidate backend logic** committed at `d12fe91`; since **2026-09-26** it is
-> restored at branch tip `4b426e7` **after owner authorization** and is **live in
-> production**, with the live readback recorded in §1.2. `origin/main` still
-> carries the baseline because **merge to `main` is pending**. Read §4 as
-> before-state and §5 plus §1.2 as current production behavior.
+> **candidate backend logic** committed at `d12fe91`; on **2026-09-26** it was
+> restored at `4b426e7` **after owner authorization** and merged to `main` at
+> `a699a56`, and it is **live in production**, with the live readback recorded in
+> §1.2. `origin/main` now carries the candidate. Read §4 as before-state and §5
+> plus §1.2 as current, merged production behavior.
 
 ---
 
@@ -75,8 +77,9 @@ out of the issue #6 scope to fix but must be tracked separately.
 
 The audit made **no UI or design changes**. It did **not** intend or authorize a
 deployment; a transient, unintended deployment did occur and was corrected — see
-§1.1. A later, separately owner-authorized restoration and deploy of the candidate
-followed on 2026-09-26 — see §1.2.
+§1.1. A later, separately owner-authorized restoration, merge and deploy of the
+candidate followed on 2026-09-26; PR #7 merged it to `main` at `a699a56` — see
+§1.2.
 
 ### 1.1 Deployment / restoration incident (disclosed)
 
@@ -109,43 +112,51 @@ authorization (§1.2). At the 2026-09-24 closeout the candidate was recoverable
 that candidate required explicit **owner approval**, and Cloudflare's branch
 auto-deploy had to be **isolated or disabled first**, so that pushing a review
 branch could not change production again. **Owner authorization was subsequently
-recorded and the candidate was restored on 2026-09-26 by `4b426e7` — see §1.2.**
+recorded, the candidate was restored on 2026-09-26 by `4b426e7`, and it merged to
+`main` at `a699a56` — see §1.2.**
 
 ---
 
-## 1.2 Authorized restoration and live deployment readback (2026-09-26)
+## 1.2 Deployment closeout — merged, deployed, verified (2026-09-26)
 
-This addendum records the **authorized** follow-up to the §1.1 incident. The owner
-explicitly authorized merge/push/deploy of the candidate, so the branch-only,
-baseline-restored state described in §1.1 no longer describes production.
+This addendum records the **authorized, completed** follow-up to the §1.1 incident.
+The owner explicitly authorized merge/push/deploy of the candidate, so the
+branch-only, baseline-restored state described in §1.1 no longer describes
+production, and the candidate is no longer a branch-only artifact.
 
-- **Restoration.** Commit `4b426e7` (`Revert "revert: keep search candidate out of
-  production"`) reverts `9b20c03`, restoring the candidate backend logic in
-  `worker/src/index.js` and `worker/tests/product-search-cap.test.mjs` — the same
-  logic previously committed at `d12fe91`.
-- **CI checks.** The Cloudflare **Pages** and **Workers** checks for the push to
-  `4b426e7` passed; the Worker build id is
-  `14339479-35cc-4d45-8f8e-3aa12c02ad89`.
-- **Live Worker readback.** A read-only `GET /api/products/search` against the
-  production Worker returned **HTTP 200** and, for the sampled queries, showed
-  title-first semantics:
+- **Merge.** PR #7 (`feat/issue-6-search-relevance-audit`) merged into `main` at
+  merge commit **`a699a5669fe1ed768b851b41da9943e380f61580`** on **2026-09-26**.
+  Issue [#6](https://github.com/ThomasMcCrossin/curlys-order-form/issues/6) is
+  **CLOSED**.
+- **Restoration lineage.** Commit `4b426e7` (`Revert "revert: keep search
+  candidate out of production"`) reverts `9b20c03`, restoring the candidate
+  backend logic in `worker/src/index.js` and
+  `worker/tests/product-search-cap.test.mjs` — the same logic previously committed
+  at `d12fe91`. That is the logic now on `main`.
+- **CI checks.** The merge-triggered Cloudflare **Pages** and **Workers** checks
+  **passed**. Final Worker build id: `1830aac0-9901-4972-b824-d702777d57bf`. (The
+  earlier `4b426e7` branch push had passed its own checks with Worker build
+  `14339479-35cc-4d45-8f8e-3aa12c02ad89`.)
+- **Tests on `origin/main`.** `node --test worker/tests/*.test.mjs` → **15 tests
+  (13 product-search + 2 phone), 15 pass, 0 fail**; `git diff --check` → clean.
+  `git diff origin/main -- worker/src/index.js worker/tests/product-search-cap.test.mjs`
+  is **empty at the merge commit** because `origin/main` *is* the candidate.
+- **Post-merge live Worker readback.** A read-only `GET /api/products/search`
+  against the production Worker returned **HTTP 200** and, for the sampled
+  queries, showed title-first semantics:
 
 | Query | Observed result |
 | --- | --- |
-| `protein` | Five title matches first: Alani Nu Whey Protein, Battle Bites High Protein Bar, Beyond Yourself Vegan Protein, Ghost Vegan Protein, Ghost Whey Protein |
-| `MUSCLE MAC` | First three results are the three Muscle-Mac products |
-| `Orange Naturals` | First two results are title matches, then vendor matches |
-| `Mutant Mass` | The 15LB and 5LB title matches return first; active before archived |
+| `protein` | Top three title matches: Alani Nu Whey Protein, Battle Bites High Protein Bar, Beyond Yourself Vegan Protein |
+| `MUSCLE MAC` | Top three results are all Muscle-Mac titles |
+| `Orange Naturals` | Top two results are title matches, then the vendor match Bounce Back |
+| `Mutant Mass` | Top two are the 15LB and 5LB ACTIVE title matches |
 | `exogenous` | Two description-only matches still appear, but below title/vendor matches |
-| barcode `627933022710` | One matching variant returned |
+| barcode `627933022710` | One matching variant returned, archived |
 
 - **Residual noise.** `exogenous` still surfaces two description-only products, so
   the §4.5 description-metadata noise floor (finding L1) remains, now ranked below
   title and vendor matches rather than above partial title.
-- **Merge to `main` is pending.** At this documentation step `origin/main` is
-  `f8a27f6` and does **not** carry the candidate; production is served by the
-  `4b426e7` branch deploy. Do not describe the candidate as merged until a merge
-  into `main` actually lands.
 
 ---
 
@@ -179,10 +190,10 @@ it is marked **[supplied evidence]**.
 
 No deployment was intended or authorized **at the time of the 2026-09-24 audit**
 (the unintended auto-build incident in §1.1 is disclosed and was reverted); the
-2026-09-26 restoration and deploy recorded in §1.2 were separately and explicitly
-owner-authorized. No visual redesign; no customer-search data collection; no
-Shopify mutation; no secret access; no unrelated refactor; no changes to
-`public/`, `worker/src`, the roadmap, or the mission stub.
+2026-09-26 restoration, merge and deploy recorded in §1.2 were separately and
+explicitly owner-authorized. No visual redesign; no customer-search data
+collection; no Shopify mutation; no secret access; no unrelated refactor; no
+changes to `public/`, `worker/src`, the roadmap, or the mission stub.
 
 ---
 
@@ -215,7 +226,7 @@ fixes `.submit-section` to the bottom; input font-size is `14px` (§4.9).
 
 This section describes the live production behavior **as observed on 2026-09-24**,
 when production was the restored baseline (see §1.1). It is retained as the
-before-state evidence for issue #6. Production has since served the candidate
+before-state evidence for issue #6. Production now serves the merged candidate
 (§1.2), so do not read this section as current behavior. All examples use public
 product names/terms only; no customer data appears.
 
@@ -288,7 +299,7 @@ evaluates to `99` for ACTIVE products. ACTIVE rows therefore sort **after** DRAF
 (`1`) and ARCHIVED (`2`). In the 2026-09-24 baseline this was a live,
 deterministic bug that inverted the intended ACTIVE-first ordering on the barcode,
 variant-text, and title paths (all three sort sites used `|| 99`); the candidate
-replaces it with `?? 99` (§5) and that ordering is now deployed (§1.2).
+replaces it with `?? 99` (§5) and that ordering is now merged and deployed (§1.2).
 
 ### 4.7 Stale responses
 
@@ -336,15 +347,15 @@ an observable inconsistency in the same form.
 
 ---
 
-## 5. Candidate backend logic (committed at `d12fe91`, restored at branch tip `4b426e7`, live in production)
+## 5. Candidate backend logic (committed at `d12fe91`, restored at `4b426e7`, merged to `main` at `a699a56`, live in production)
 
 > This section documents the candidate logic first committed at `d12fe91` on
 > `feat/issue-6-search-relevance-audit`. It was reverted at the 2026-09-24 closeout
 > tip (`9b20c03`) and then **restored by `4b426e7` on 2026-09-26 after explicit
 > owner authorization**, with Pages/Workers checks passing and a live readback
-> confirming the ordering in §1.2. It is **live in production from the branch
-> deploy**, but **not yet merged to `main`**. `origin/main` still carries the
-> baseline behavior in §4.
+> confirming the ordering in §1.2. It is **merged to `main` at `a699a56` and live
+> in production**; `origin/main` now carries this logic, and §4's baseline
+> behavior is historical.
 
 Commit `d12fe91` modifies `worker/src/index.js` (new `rankProductCandidates`
 helper, an `isIdentifierShaped` gate, and a rewritten `/api/products/search`
@@ -395,8 +406,8 @@ assertions.
 
 The candidate ordering (title → vendor → identifier → variant → metadata) matches
 the issue #6 acceptance criteria. It diverges deliberately from the 2026-09-24
-observed deployed ordering in §4.1. Owner approval was recorded and the candidate
-is deployed from `4b426e7` (§1.2); **merge to `main` remains pending**.
+observed deployed ordering in §4.1. Owner approval was recorded, and the candidate
+is merged to `main` at `a699a56` and live in production (§1.2).
 
 ---
 
@@ -497,7 +508,7 @@ HTML-attribute-escape the payload; add a CSP and output-encoding tests.
 
 ## 8. What the candidate backend logic does and does not address
 
-| Finding | Addressed by candidate `rankProductCandidates` (commit `d12fe91`, restored at `4b426e7`, live in production, not yet merged to `main`)? |
+| Finding | Addressed by candidate `rankProductCandidates` (commit `d12fe91`, restored at `4b426e7`, merged to `main` at `a699a56`, live in production)? |
 | --- | --- |
 | H1 title buried | Yes, by design (title 0–3 before vendor/identifier/metadata) — title-first ordering confirmed by the live readback in §1.2 |
 | H2 ACTIVE-last | Yes, `?? 99` replaces `|| 99` — verified by offline fixtures |
@@ -518,32 +529,32 @@ Run from the repository root:
 # 1) Offline search + phone fixtures (no network, no secrets; uses fixture.invalid)
 node --test worker/tests/*.test.mjs
 
-# Per-file counts at the 2026-09-26 branch tip (candidate logic restored by 4b426e7):
+# Per-file counts on origin/main (candidate merged at a699a56):
 node --test worker/tests/product-search-cap.test.mjs   # 13 tests
 node --test worker/tests/phone-progressive.test.mjs    # 2 tests
 
 # 2) Whitespace / conflict-marker check on the working tree
 git diff --check
 
-# 3) Confirm branch / deploy state
-git status --short          # expect: clean
-git rev-parse --short HEAD  # expect: 4b426e7
-git diff origin/main -- worker/src/index.js worker/tests/product-search-cap.test.mjs  # expect: non-empty (candidate differs from main)
+# 3) Confirm merged / deployed state
+git status --short          # expect: clean at the merge commit (this docs-only closeout edit is uncommitted)
+git rev-parse --short HEAD  # expect: a699a56 (merge commit a699a5669fe1ed768b851b41da9943e380f61580)
+git diff origin/main -- worker/src/index.js worker/tests/product-search-cap.test.mjs  # expect: empty (main is the candidate)
 git show --stat 9b20c03     # 2026-09-24 restoration to baseline (worker src + tests only)
 git show --stat 4b426e7     # 2026-09-26 authorized restoration of the candidate
+git show --stat a699a5669fe1ed768b851b41da9943e380f61580  # PR #7 merge into main
 git log --oneline --all --grep='product search'  # show mission, candidate, and report history
-git branch --show-current   # expect: feat/issue-6-search-relevance-audit
 ```
 
 **Observed result at the 2026-09-24 closeout tip** (Node v22.22.3, after
 `9b20c03`): `node --test worker/tests/*.test.mjs` → **5 tests (3 product-search +
 2 phone), 5 pass, 0 fail**; `git diff --check` → clean (exit 0).
 
-**Current result at the 2026-09-26 branch tip** (Node v22.22.3, `4b426e7`):
+**Current result on `origin/main`** (Node v22.22.3, `a699a56`):
 `node --test worker/tests/*.test.mjs` → **15 tests (13 product-search + 2 phone),
 15 pass, 0 fail**; `git diff --check` → clean (exit 0). This matches the fixture
 count originally recorded for the candidate at `d12fe91`, and the candidate source
-is now restored at the branch tip. The tests stub `globalThis.fetch` and assert
+is merged to `main`. The tests stub `globalThis.fetch` and assert
 the Shopify host is `fixture.invalid`; they make no live request.
 
 ### Manual read-only replay (for reviewers, if authorized)
@@ -592,12 +603,15 @@ against the customer endpoint for data-collection purposes.
   branch triggered the configured Cloudflare Worker auto-build, which **briefly
   and unintentionally made the candidate at `d12fe91` live** (§1.1); `9b20c03`
   then auto-built and restored the baseline.
-- **A separate, explicitly owner-authorized restoration and deploy followed on
-  2026-09-26** (§1.2): commit `4b426e7` restored the candidate, Cloudflare Pages
-  and Workers checks passed (Worker build
-  `14339479-35cc-4d45-8f8e-3aa12c02ad89`), and the live Worker returned HTTP 200
-  with title-first ordering. **Production now serves the candidate**; the earlier
-  "restored baseline" statement no longer describes production.
+- **A separate, explicitly owner-authorized restoration, merge and deploy
+  followed on 2026-09-26** (§1.2): commit `4b426e7` restored the candidate, PR #7
+  merged it to `main` at merge commit
+  `a699a5669fe1ed768b851b41da9943e380f61580`, the merge-triggered Cloudflare Pages
+  and Workers checks passed (final Worker build
+  `1830aac0-9901-4972-b824-d702777d57bf`), and the post-merge live Worker returned
+  HTTP 200 with title-first ordering. **Production now serves the merged
+  candidate**; the earlier "restored baseline" statement no longer describes
+  production.
 - **No Shopify mutation occurred.** No order, draft order, customer, inventory,
   email, or product was created or modified.
 - **No customer data was recorded.**
@@ -607,14 +621,18 @@ against the customer endpoint for data-collection purposes.
 - **No source, roadmap, or mission changes were made by this report.** This
   report records the audit only; it did not author the candidate backend logic.
   The `worker/src/index.js` and `worker/tests/product-search-cap.test.mjs` changes
-  are committed separately at `d12fe91` on this branch.
-- **Committed on a branch; merge to `main` pending.** The candidate backend logic
-  (`d12fe91`, restored at `4b426e7`), the mission stub (`20ce50b`), this report
-  (`8337bf9`), the 2026-09-24 incident disclosure (`2cb7e25`), and the restoration
-  commit (`9b20c03`) live on `feat/issue-6-search-relevance-audit`. `origin/main`
-  is `f8a27f6` and still carries the baseline behavior, so the candidate is **not
-  merged**; production is served from the branch deploy of `4b426e7`. Merge to
-  `main` remains pending at this documentation step.
+  are committed separately at `d12fe91` on the audit branch (now merged to `main`
+  via PR #7 at `a699a56`).
+- **Documentation-only closeout.** The 2026-09-26 closeout edit changed only
+  `docs/audits/2026-09-24-product-search-ui-ux.md` and
+  `docs/80_PROGRAM_ROADMAP.md`: no source or UI edit and no commit.
+- **Merged to `main` and deployed.** The candidate backend logic (`d12fe91`,
+  restored at `4b426e7`), the mission stub (`20ce50b`), this report (`8337bf9`),
+  the 2026-09-24 incident disclosure (`2cb7e25`), and the restoration commit
+  (`9b20c03`) reached `main` via PR #7, merged at
+  `a699a5669fe1ed768b851b41da9943e380f61580` on 2026-09-26. `origin/main` now
+  carries the candidate, production is served from the merged `main`, and issue #6
+  is CLOSED.
 
 ---
 
@@ -624,12 +642,13 @@ against the customer endpoint for data-collection purposes.
    remove reliance on the client-side password (finding S1).
 2. **P0 security** — eliminate the inline-`onclick` JSON XSS vector and add
    output-encoding/CSP tests (finding S2).
-3. **P1 relevance — approved and deployed from the branch; merge pending.** The
-   title-first candidate (commit `d12fe91`, restored at `4b426e7`) plus the
-   ACTIVE-first fix received explicit owner authorization, and the live readback
-   in §1.2 confirms title-first ordering in production. Remaining steps: merge to
-   `main` (pending at this documentation step) and complete owner acceptance of the
-   deployed behavior. The L1 description-noise floor remains a follow-up (§1.2).
+3. **P1 relevance — merged, deployed and closed.** The title-first candidate
+   (commit `d12fe91`, restored at `4b426e7`) plus the ACTIVE-first fix received
+   explicit owner authorization, was merged to `main` by PR #7 at merge commit
+   `a699a5669fe1ed768b851b41da9943e380f61580`, and is live in production with the
+   post-merge readback in §1.2 confirming title-first ordering. Issue #6 is
+   **CLOSED**. The L1 description-noise floor remains a follow-up (§1.2), and owner
+   acceptance of the deployed behavior remains the standing check.
 4. **P1 correctness** — add a request sequence guard/`AbortController` to the
    product search fetch (finding H3).
 5. **P2 UX/a11y** — add click-outside dismissal, keyboard operability, ARIA
