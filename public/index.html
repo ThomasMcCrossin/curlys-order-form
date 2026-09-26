@@ -147,6 +147,18 @@
       background-color: #F4F5F7;
     }
 
+    /* Long unbroken titles, emails, SKUs and barcodes wrap inside their box */
+    .autocomplete-item-title,
+    .autocomplete-item-subtitle,
+    .variant-title,
+    .variant-subtitle,
+    .selected-customer-info,
+    .line-item-info,
+    .message p {
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+
     .autocomplete-item-title {
       font-weight: 600;
       color: var(--color-text);
@@ -174,6 +186,12 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: var(--space-sm);
+    }
+
+    .product-header > div {
+      flex: 1;
+      min-width: 0;
     }
 
     .product-header:hover {
@@ -181,6 +199,7 @@
     }
 
     .product-expand-icon {
+      flex-shrink: 0;
       font-size: 12px;
       color: var(--color-text-secondary);
       transition: transform 0.2s;
@@ -245,6 +264,17 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+
+    .selected-customer-info {
+      flex: 1 1 220px;
+      min-width: 0;
+    }
+
+    .selected-customer > .btn {
+      flex-shrink: 0;
     }
 
     .selected-customer-info h3 {
@@ -296,6 +326,7 @@
 
     .line-item-info {
       flex: 1;
+      min-width: 0;
     }
 
     .line-item-title {
@@ -329,19 +360,22 @@
       font-weight: 600;
     }
 
-    .line-item-quantity {
+    input.line-item-quantity {
       width: 80px;
+      flex: 0 0 80px;
     }
 
     .line-item-price {
       font-weight: 600;
-      width: 100px;
+      min-width: 100px;
       text-align: right;
+      white-space: nowrap;
     }
 
     .line-item-remove {
-      width: 36px;
-      height: 36px;
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
       padding: 0;
       border: none;
       background: transparent;
@@ -501,6 +535,23 @@
       display: block;
     }
 
+    /* Checkbox rows */
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      min-height: 44px;
+      font-weight: normal;
+      cursor: pointer;
+      margin-bottom: 0;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+    }
+
     /* Empty State */
     .empty-state {
       text-align: center;
@@ -520,20 +571,36 @@
 
       .form-row {
         grid-template-columns: 1fr;
+        gap: 0;
+      }
+
+      /* 16px inputs stop iOS Safari zooming the page on focus */
+      input[type="text"],
+      input[type="email"],
+      input[type="tel"],
+      input[type="number"],
+      textarea {
+        font-size: 16px;
       }
 
       .line-item {
         flex-wrap: wrap;
+        gap: var(--space-sm);
       }
 
       .line-item-info {
-        width: 100%;
+        flex: 1 1 100%;
         margin-bottom: var(--space-sm);
       }
 
-      .line-item-quantity,
+      input.line-item-quantity {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+
       .line-item-price {
-        flex: 1;
+        flex: 1 0 auto;
+        min-width: 0;
       }
     }
 
@@ -700,12 +767,11 @@
         </small>
         <small id="phoneErrorNote" style="display: none; color: #dc3545; margin-top: 0.25rem;"></small>
         <div style="margin-top: 0.5rem;">
-          <label style="display: flex; align-items: center; font-weight: normal; cursor: pointer;">
+          <label class="checkbox-label">
             <input
               type="checkbox"
               id="phoneRefusedCheckbox"
               onchange="togglePhoneRequired()"
-              style="margin-right: 0.5rem;"
             >
             Customer refused to provide phone number
           </label>
@@ -745,19 +811,18 @@
           <div class="form-row">
             <div class="form-group">
               <label for="email">Email *</label>
-              <input type="email" id="email" placeholder="[email protected]" required>
+              <input type="email" id="email" placeholder="john@example.com" required>
             </div>
             <div class="form-group">
               <label for="phone">Phone *</label>
               <input type="tel" id="phone" placeholder="(555) 123-4567">
               <small id="manualPhoneErrorNote" style="display: none; color: #dc3545; margin-top: 0.25rem;"></small>
               <div style="margin-top: 0.5rem;">
-                <label style="display: flex; align-items: center; font-weight: normal; cursor: pointer;">
+                <label class="checkbox-label">
                   <input
                     type="checkbox"
                     id="manualPhoneRefusedCheckbox"
                     onchange="toggleManualPhoneRequired()"
-                    style="margin-right: 0.5rem;"
                   >
                   Customer refused to provide phone number
                 </label>
