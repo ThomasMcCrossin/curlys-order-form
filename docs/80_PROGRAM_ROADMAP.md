@@ -39,9 +39,18 @@ floor remains a follow-up, and owner acceptance of the deployed behavior remains
 the standing check. The earlier unintended auto-build and baseline restoration
 incident remains recorded as history in report §1.1.
 
-**Issues #2 and #3 only:** Read-only source review on 2026-09-23 found both implementation commits on `main`, while authenticated GitHub readback still showed both issues OPEN. Focused local fixtures now pass, but they are **not** owner acceptance or deployment evidence; do not repeat the implementation or close either issue before review. Keep findings on the existing issues rather than opening duplicate missions. These are the only converted technical missions. Labels created for the
-conversion are `converted-from-todo`, `domain:product-search`, and
-`domain:customer-experience`. No pre-existing GitHub issues were present.
+**Issues #2 and #3 only:** Read-only source review on 2026-09-23 found both implementation commits on `main`, while authenticated GitHub readback still showed both issues OPEN. Focused local fixtures now pass, but they are **not** owner acceptance or deployment evidence; do not repeat the implementation or close either issue before review. Keep findings on the existing issues rather than opening duplicate missions.
+
+Issues #2 and #3 are the only technical missions converted from the legacy
+checklists. Labels created for that conversion are `converted-from-todo`,
+`domain:product-search`, and `domain:customer-experience`. No pre-existing
+GitHub issues were present at that conversion.
+
+## Discovery scaffold — not ready for implementation
+
+| Issue | Mission | Scope | Readiness |
+| --- | --- | --- | --- |
+| [#5](https://github.com/ThomasMcCrossin/curlys-order-form/issues/5) | [Curlys Ops integration discovery](missions/issue-5-curlys-ops-integration-discovery.md) | Review target-side workflow and define an evidence-backed integration boundary; see the [concept scaffold](integration-curlys-ops.md). | Blocked on authorized target-side review and operator decisions; no runtime work authorized. |
 
 ## Done or evidenced in the legacy record
 
