@@ -125,11 +125,11 @@ Draft order usage:
 - **Resend API**: outbound email notifications.
 - **Shopify Flow**: back‑in‑stock webhook sender.
 
-Shopify API version used: `2024-10` (hardcoded in worker).
+Shopify Admin API version: `2026-07`, set by the `SHOPIFY_API_VERSION` var in `worker/wrangler.toml` (worker default `DEFAULT_SHOPIFY_API_VERSION`, also `2026-07`). All REST and GraphQL calls go through `shopifyAdminBase()`.
 
 ## Configuration & Secrets
 Worker configuration is defined in `worker/wrangler.toml`:
-- Non‑secret vars: `SHOPIFY_STORE`, `FROM_EMAIL`, `STAFF_EMAIL`, `STAFF_NOTIFY_ALL`, `AUTO_INVOICE_ON_STOCK`.
+- Non‑secret vars: `SHOPIFY_STORE`, `SHOPIFY_API_VERSION`, `FROM_EMAIL`, `STAFF_EMAIL`, `STAFF_NOTIFY_ALL`, `AUTO_INVOICE_ON_STOCK`.
 - Secrets (set in Cloudflare): `SHOPIFY_ADMIN_TOKEN`, `RESEND_API_KEY`, `FLOW_SHARED_SECRET`.
 
 Frontend configuration (hardcoded in HTML):

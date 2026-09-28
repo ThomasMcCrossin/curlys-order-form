@@ -71,6 +71,7 @@ After setup, every push to `main` branch will:
 ### ✅ Worker Configuration
 - FROM_EMAIL: `Curly's Sports & Supplements <orders@curlys.ca>` (replies go to STAFF_EMAIL)
 - STAFF_EMAIL: `tom@curlys.ca`
+- SHOPIFY_API_VERSION: `2026-07` (Shopify Admin API version for every call; remove to use the worker default)
 - AUTO_INVOICE_ON_STOCK: `false` (owner decision 2026-09-28: one back-in-stock email, no Shopify invoice; set `true` to re-enable)
 - All environment variables preserved
 
@@ -117,6 +118,7 @@ SHOPIFY_STORE = "curlys-sports-supplements.myshopify.com"
 FROM_EMAIL = "Curly's Sports & Supplements <orders@curlys.ca>"
 STAFF_EMAIL = "tom@curlys.ca"
 STAFF_NOTIFY_ALL = "true"
+SHOPIFY_API_VERSION = "2026-07"
 AUTO_INVOICE_ON_STOCK = "false"
 ```
 
