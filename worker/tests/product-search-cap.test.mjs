@@ -6,7 +6,7 @@ const env = { SHOPIFY_STORE: 'fixture.invalid', SHOPIFY_ADMIN_TOKEN: 'fixture-on
 
 const product = (id, title, vendor = '', status = 'ACTIVE', variants = []) => ({
   node: {
-    id: `gid://${id}`, title, vendor, status, featuredImage: null,
+    id: `gid://${id}`, title, vendor, status, featuredMedia: null,
     variants: { edges: variants.map(node => ({ node })) }
   }
 });

@@ -12,7 +12,7 @@ async function submit(customer, customers = {}, { failEmailPut = false } = {}) {
     const url = new URL(typeof input === 'string' ? input : input.url);
     const method = init.method || 'GET';
     const body = init.body ? JSON.parse(init.body) : undefined;
-    calls.push({ method, path: url.pathname.replace('/admin/api/2024-10', ''), search: url.search, body });
+    calls.push({ method, path: url.pathname.replace(/^\/admin\/api\/[^/]+/, ''), search: url.search, body });
     const ok = obj => new Response(JSON.stringify(obj), { status: 200, headers: { 'content-type': 'application/json' } });
     const byId = url.pathname.match(/\/customers\/(\d+)\.json$/);
     if (byId) {

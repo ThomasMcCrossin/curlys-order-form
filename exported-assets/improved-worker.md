@@ -399,7 +399,7 @@ function normalizeMoney(x) {
 }
 
 async function shopifyRest(env, path, method="GET", body) {
-  const res = await fetch(`https://${env.SHOPIFY_STORE}/admin/api/2024-10${path}`, {
+  const res = await fetch(`https://${env.SHOPIFY_STORE}/admin/api/${env.SHOPIFY_API_VERSION || "2026-07"}${path}`, {
     method,
     headers: {
       "X-Shopify-Access-Token": env.SHOPIFY_ADMIN_TOKEN,
@@ -417,7 +417,7 @@ async function shopifyRest(env, path, method="GET", body) {
 }
 
 async function shopifyGraphQL(env, query, variables) {
-  const res = await fetch(`https://${env.SHOPIFY_STORE}/admin/api/2024-10/graphql.json`, {
+  const res = await fetch(`https://${env.SHOPIFY_STORE}/admin/api/${env.SHOPIFY_API_VERSION || "2026-07"}/graphql.json`, {
     method: "POST",
     headers: {
       "X-Shopify-Access-Token": env.SHOPIFY_ADMIN_TOKEN,
