@@ -1,5 +1,13 @@
 # Curly's Order Form mission: issue #3
 
+> **Superseded (2026-09-28, branch `feat/require-email-refusal-gate`).** By owner
+> decision, email (not phone) is now the required contact. A selected customer
+> without an email gets an inline "Add email" link that reveals an email field and a
+> "Customer refused to provide email" checkbox; a customer missing only a phone gets
+> no prompt. If email is refused and there is no phone on file, a phone is required.
+> The phone disclosure described below no longer exists; this stub is kept as dated
+> evidence.
+
 **Task.** Use progressive disclosure for a missing customer phone number.
 
 **Scope.** Selected-customer UI in `public/index.html`: show a small “Add phone
