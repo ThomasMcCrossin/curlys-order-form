@@ -762,7 +762,6 @@ export default {
               reference: draft.name || draft.id,
               lineItem: enrichedMatchedLineItem,
               otherLineItems,
-              invoiceToFollow: autoInvoice,
               firstName: draft?.customer?.first_name
             });
             await sendResend(env, {

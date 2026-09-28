@@ -24,7 +24,7 @@ const LONG = `Very long product title ${'with lots of words '.repeat(12)}and an 
 
 const all = (opts = {}) => [
   renderRequestReceivedEmail({ reference: '#D1', lineItems: [line()], firstName: 'Sam', ...opts.received }),
-  renderBackInStockEmail({ reference: '#D1', lineItem: line(), otherLineItems: [bare], invoiceToFollow: true, firstName: 'Sam', ...opts.stock }),
+  renderBackInStockEmail({ reference: '#D1', lineItem: line(), otherLineItems: [bare], firstName: 'Sam', ...opts.stock }),
   renderReadyForPickupEmail({ reference: '#D1', lineItems: [line()], message: 'See you soon', firstName: 'Sam', ...opts.ready })
 ];
 
@@ -108,7 +108,7 @@ test('missing optional fields never leak placeholders', () => {
   assert.doesNotMatch(emails[0].html, /Order request<\/div>/, 'no reference chip without a reference');
   assert.match(emails[2].html, /No items listed/);
   assert.doesNotMatch(emails[2].html, /A note from the store/);
-  assert.match(emails[2].subject, /^Ready for pickup: order request \| /);
+  assert.match(emails[2].subject, /^Your order has arrived: request \| /);
 });
 
 test('Default Title and repeated product names are not shown as variants', () => {
@@ -144,13 +144,24 @@ test('many items all render', () => {
   assert.match(html, /What you asked for \(8 items\)/);
 });
 
-test('back-in-stock copy covers the invoice and what is still on the way', () => {
-  const withRest = renderBackInStockEmail({ reference: '#D1', lineItem: line(), otherLineItems: [bare], invoiceToFollow: true });
+test('back-in-stock copy says come grab it or order online, and lists what is still on the way', () => {
+  const withRest = renderBackInStockEmail({ reference: '#D1', lineItem: line(), otherLineItems: [bare] });
   assert.match(withRest.html, /Still on the way/);
-  assert.match(withRest.text, /payment link for your whole order will follow/);
-  const solo = renderBackInStockEmail({ reference: '#D1', lineItem: line(), invoiceToFollow: false });
-  assert.doesNotMatch(solo.html, /Still on the way|payment link/);
-  assert.match(solo.text, /pay in store/);
+  const solo = renderBackInStockEmail({ reference: '#D1', lineItem: line() });
+  assert.doesNotMatch(solo.html, /Still on the way/);
+  for (const email of [withRest, solo]) {
+    assert.match(email.text, /Come grab it at the store, or order it online at curlys\.ca/);
+    assert.match(email.html, /href="https:\/\/curlys\.ca"/);
+    assert.doesNotMatch(email.text, /Shopify|payment link/i, 'no second message is promised');
+  }
+});
+
+test('no customer email promises to hold, set aside or reserve items', () => {
+  for (const { subject, html, text } of all()) {
+    for (const part of [subject, text, html.replace(/<style[\s\S]*?<\/style>/, '')]) {
+      assert.doesNotMatch(part, /set (it |them )?aside|\breserve|\bhold(ing)?\b|waiting for you/i);
+    }
+  }
 });
 
 test('invoice custom message is plain, short and makes no hold promise', () => {
@@ -185,7 +196,7 @@ test('worker passes subject, html and text to Resend with the same recipient and
     assert.equal(email.to, 'c@example.test');
     assert.equal(email.from, 'from@example.test');
     assert.equal(email.reply_to, 'staff@example.test');
-    assert.match(email.subject, /^Ready for pickup: order #D77/);
+    assert.match(email.subject, /^Your order has arrived: #D77/);
     assert.ok(email.text && email.text.includes('<img src=x onerror=alert(1)>'), 'text part is sent (raw is fine in text)');
     assert.ok(!email.html.includes('<img src=x'), 'staff message is escaped in HTML');
     assert.ok(!email.html.includes('<script>'), 'line item title is escaped in HTML');

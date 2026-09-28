@@ -1,5 +1,15 @@
 // Customer email templates for Curly's Sports & Supplements.
 //
+// THIS FILE IS THE SINGLE SOURCE FOR CUSTOMER EMAIL COPY. Every subject line, preheader,
+// headline, sentence and sign-off a customer reads, plus the Shopify invoice note, lives
+// below; index.js only decides when and to whom. To change wording, edit the strings in the
+// render* functions, then run `node --test worker/tests/*.test.mjs`.
+//
+// Owner decisions (2026-09-28): the store does NOT hold, set aside or reserve items. A
+// back-in-stock event sends exactly one message, this email ("it's back, come grab it or order
+// online"); the Shopify auto-invoice is off (AUTO_INVOICE_ON_STOCK = "false" in wrangler.toml).
+// Sender is FROM_EMAIL in wrangler.toml (display name included); replies go to STAFF_EMAIL.
+//
 // Design notes (brand read from https://curlys.ca and /pages/contact, 2026-09-28):
 // - Identity: the hosted "Curly's / Sports & Supplements" script wordmark (transparent PNG,
 //   orange #FCA733 with a dark outline) sits on a near-black band (#111111, the site's nav and
@@ -14,7 +24,7 @@
 //   stack for small-screen legibility. No web fonts, because most clients drop them.
 // - Voice: a person at the counter in Amherst. Short, warm, specific, no hype. Staff answer
 //   replies personally, so every email ends with "reply or call". We make no promises about
-//   hold periods or payment terms (those are owner decisions) and publish no store hours.
+//   holds (the store does not hold stock) or payment terms, and publish no store hours.
 // - Structure: hidden preheader, header, eyebrow + headline, short intro, reference chip
 //   ("mention it at the counter"), product cards (thumbnail when the variant has an image,
 //   otherwise an initial tile), at most one bulletproof button, then a footer with store identity.
@@ -410,30 +420,27 @@ export function renderRequestReceivedEmail({ reference, lineItems, firstName }) 
 
 // Sent by the Shopify Flow back-in-stock hook for the one variant that just arrived.
 // `otherLineItems` are the rest of the draft that has not had its own in-stock email yet.
-export function renderBackInStockEmail({ reference, lineItem, otherLineItems = [], invoiceToFollow = false, firstName }) {
+export function renderBackInStockEmail({ reference, lineItem, otherLineItems = [], firstName }) {
   const item = toEmailItem(lineItem || {});
   const others = toItems(otherLineItems);
   const ref = cleanText(reference);
   const headline = "Good news, it's in";
   const subject = `Now in stock: ${truncate(item.title, 80)} | ${STORE.shortName}`;
-  const preheader = `${truncate(item.title, 60)} just arrived and we've set it aside for you.`;
+  const preheader = `${truncate(item.title, 60)} is back in stock. Come grab it or order online.`;
 
-  const payLine = invoiceToFollow
-    ? `A payment link for your ${others.length ? "whole order" : "order"} will follow in a separate email from Shopify if you'd like to pay ahead. You can also pay in store when you pick it up.`
-    : "You can pay in store when you pick it up.";
+  const intro = "The item you asked about is back in stock. Come grab it at the store, or order it online at curlys.ca.";
 
   const content = [
     paragraph(escapeHtml(greeting(firstName))),
-    paragraph("The item you ordered just arrived. We've set it aside for you at the store."),
+    paragraph(intro),
     referenceChip(ref),
     sectionLabel("Now in stock"),
     itemList([item], { showPrice: true }),
     others.length ? sectionLabel("Still on the way") : "",
     others.length ? itemList(others, { showPrice: false, showImages: false }) : "",
     others.length ? paragraph("We'll email you again as the rest comes in.") : "",
-    paragraph(payLine),
     button("Get directions to the store", STORE.mapsUrl),
-    `<div style="height:12px;line-height:12px;font-size:12px;">&nbsp;</div>`,
+    `<p class="dm-muted" style="margin:10px 0 20px;font-family:${SANS};font-size:14px;line-height:20px;color:${C.muted};">Rather order online? <a href="${STORE.siteUrl}" class="dm-link" style="color:${C.text};font-weight:600;text-decoration:underline;">Shop at ${STORE.siteLabel}</a></p>`,
     paragraph(contactLine()),
     paragraph(`See you soon,<br>The team at ${escapeHtml(STORE.shortName)}`, "margin-bottom:8px;")
   ].join("\n");
@@ -441,12 +448,12 @@ export function renderBackInStockEmail({ reference, lineItem, otherLineItems = [
   const text = joinText([
     headline,
     greeting(firstName),
-    "The item you ordered just arrived. We've set it aside for you at the store.",
+    intro,
     textReference(ref),
     `Now in stock:\n${textItems([item], { showPrice: true })}`,
     others.length ? `Still on the way:\n${textItems(others, { showPrice: false })}\n\nWe'll email you again as the rest comes in.` : "",
-    payLine,
     `Find us: ${STORE.street}, ${STORE.locality}\n${STORE.mapsUrl}`,
+    `Rather order online? ${STORE.siteUrl}`,
     textContact(),
     `See you soon,\nThe team at ${STORE.shortName}`,
     textFooter()
@@ -460,11 +467,11 @@ export function renderReadyForPickupEmail({ reference, lineItems, message, first
   const items = toItems(lineItems);
   const ref = cleanText(reference);
   const staffMessage = String(message ?? "").trim();
-  const headline = items.length > 1 ? "Everything's here and waiting for you" : "It's here and waiting for you";
-  const subject = `Ready for pickup: order ${ref || "request"} | ${STORE.name}`;
+  const headline = items.length > 1 ? "Your order is in" : "Your item is in";
+  const subject = `Your order has arrived: ${ref || "request"} | ${STORE.name}`;
   const preheader = staffMessage
     ? truncate(staffMessage, 110)
-    : "Everything's in and waiting for you at the store.";
+    : "Your order has arrived at the store.";
 
   const noteHtml = staffMessage
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;"><tr>
@@ -476,7 +483,7 @@ export function renderReadyForPickupEmail({ reference, lineItems, message, first
 
   const content = [
     paragraph(escapeHtml(greeting(firstName))),
-    paragraph("Your order has arrived and is waiting for you at the store. Drop in whenever it suits you."),
+    paragraph("Your order has arrived at the store. Drop in when you can to grab it."),
     noteHtml,
     referenceChip(ref),
     sectionLabel(items.length === 1 ? "Ready for you" : `Ready for you (${items.length} items)`),
@@ -491,7 +498,7 @@ export function renderReadyForPickupEmail({ reference, lineItems, message, first
   const text = joinText([
     headline,
     greeting(firstName),
-    "Your order has arrived and is waiting for you at the store. Drop in whenever it suits you.",
+    "Your order has arrived at the store. Drop in when you can to grab it.",
     staffMessage ? `A note from the store:\n${staffMessage}` : "",
     textReference(ref),
     `Ready for you:\n${textItems(items, { showPrice: false, showSku: true })}`,
@@ -502,11 +509,12 @@ export function renderReadyForPickupEmail({ reference, lineItems, message, first
     textFooter()
   ]);
 
-  return { subject, html: layout({ title: subject, preheader, eyebrow: "Ready for pickup", headline, content }), text };
+  return { subject, html: layout({ title: subject, preheader, eyebrow: "Arrived in store", headline, content }), text };
 }
 
 // Plain-text custom_message placed inside Shopify's own draft-order invoice email.
 // Shopify renders the surrounding invoice from its admin template, not from this code.
+// Only sent when AUTO_INVOICE_ON_STOCK is "true" (off by owner decision, 2026-09-28).
 export function invoiceCustomMessage() {
   return `Here's the payment link for your special order from ${STORE.shortName}. `
     + "Pay online if you'd like it sorted before you come in, or pay in store at pickup. "
