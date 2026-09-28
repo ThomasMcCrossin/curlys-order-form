@@ -1719,6 +1719,26 @@ async function findOrAttachCustomer(customerInput, env) {
   const email = (customerInput.email || "").trim().toLowerCase();
   const phone = (customerInput.phone || "").trim();
 
+  // Staff picked an existing customer: attach to them, adding the email if they had none,
+  // instead of searching/creating a duplicate by email.
+  const existingId = String(customerInput.id || "").match(/(\d+)$/)?.[1];
+  if (existingId) {
+    const existing = (await shopifyRest(env, `/customers/${existingId}.json`).catch(() => null))?.customer;
+    if (existing) {
+      if (email && !existing.email) {
+        try {
+          await shopifyRest(env, `/customers/${existingId}.json`, "PUT", {
+            customer: { id: existing.id, email }
+          });
+          existing.email = email;
+        } catch (e) {
+          console.error("Failed to add email to existing customer:", e);
+        }
+      }
+      return existing;
+    }
+  }
+
   if (email) {
     const found = await shopifyRest(env, `/customers/search.json?query=email:${encodeURIComponent(email)}`);
     if (found?.customers?.length) return found.customers[0];
