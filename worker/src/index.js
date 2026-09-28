@@ -84,7 +84,7 @@ export default {
         // reduced to an exact phrase and partial token matches still surface candidates.
         const broadTerms = words.join(" ");
         const identifier = `"${query.replace(/[\\"]/g, "\\$&")}"`;
-        const PRODUCT_FIELDS = `id title vendor status featuredImage { url(transform: { maxWidth: 100 }) }`;
+        const PRODUCT_FIELDS = `id title vendor status featuredMedia { preview { image { url(transform: { maxWidth: 100 }) } } }`;
         const GROUPED_PRODUCT_FIELDS = `${PRODUCT_FIELDS}
           variants(first: 25) { edges { node { legacyResourceId barcode sku title displayName price inventoryQuantity } } }`;
         const VARIANT_FIELDS = `legacyResourceId barcode sku title displayName price inventoryQuantity
@@ -920,7 +920,7 @@ function rankProductCandidates(query, identifierEdges, variantEdges, productEdge
     if (!product?.id) return;
     if (!parents.has(product.id)) parents.set(product.id, {
       id: product.id, productTitle: product.title, vendor: product.vendor || "",
-      status: product.status, image: product.featuredImage?.url || null,
+      status: product.status, image: product.featuredMedia?.preview?.image?.url || null,
       variants: new Map()
     });
     const parent = parents.get(product.id);
@@ -1479,8 +1479,16 @@ function getReminderState(draft, now = new Date()) {
   };
 }
 
+// Shopify Admin API version for every REST and GraphQL call. Override with the
+// SHOPIFY_API_VERSION var; remove the var to fall back to this default.
+const DEFAULT_SHOPIFY_API_VERSION = "2026-07";
+
+function shopifyAdminBase(env) {
+  return `https://${env.SHOPIFY_STORE}/admin/api/${env.SHOPIFY_API_VERSION || DEFAULT_SHOPIFY_API_VERSION}`;
+}
+
 async function shopifyRest(env, path, method="GET", body) {
-  const res = await fetch(`https://${env.SHOPIFY_STORE}/admin/api/2024-10${path}`, {
+  const res = await fetch(`${shopifyAdminBase(env)}${path}`, {
     method,
     headers: {
       "X-Shopify-Access-Token": env.SHOPIFY_ADMIN_TOKEN,
@@ -1498,7 +1506,7 @@ async function shopifyRest(env, path, method="GET", body) {
 }
 
 async function shopifyGraphQL(env, query, variables) {
-  const res = await fetch(`https://${env.SHOPIFY_STORE}/admin/api/2024-10/graphql.json`, {
+  const res = await fetch(`${shopifyAdminBase(env)}/graphql.json`, {
     method: "POST",
     headers: {
       "X-Shopify-Access-Token": env.SHOPIFY_ADMIN_TOKEN,
@@ -1542,14 +1550,16 @@ async function variantIdFromInventoryItemId(inventoryItemId, env) {
   const data = await shopifyGraphQL(env, `
     query($id: ID!) {
       inventoryItem(id: $id) {
-        variant {
-          legacyResourceId
+        variants(first: 1) {
+          nodes {
+            legacyResourceId
+          }
         }
       }
     }
   `, { id: `gid://shopify/InventoryItem/${id}` });
 
-  return data?.inventoryItem?.variant?.legacyResourceId || null;
+  return data?.inventoryItem?.variants?.nodes?.[0]?.legacyResourceId || null;
 }
 
 function availableQuantityFromInventoryLevel(level) {
@@ -1649,8 +1659,8 @@ async function setVariantAvailableInventoryToZero(env, variantId) {
   }
 
   const data = await shopifyGraphQL(env, `
-    mutation($input: InventorySetQuantitiesInput!) {
-      inventorySetQuantities(input: $input) {
+    mutation($input: InventorySetQuantitiesInput!, $idempotencyKey: String!) {
+      inventorySetQuantities(input: $input) @idempotent(key: $idempotencyKey) {
         inventoryAdjustmentGroup {
           reason
           changes {
@@ -1675,9 +1685,11 @@ async function setVariantAvailableInventoryToZero(env, variantId) {
         inventoryItemId: snapshot.inventoryItemId,
         locationId: level.locationId,
         quantity: 0,
-        compareQuantity: level.available
+        // Compare-and-set: Shopify rejects the write if stock moved since the snapshot.
+        changeFromQuantity: level.available
       }))
-    }
+    },
+    idempotencyKey: crypto.randomUUID()
   });
 
   const payload = data?.inventorySetQuantities;
@@ -1773,7 +1785,7 @@ async function sendInvoice(env, draft, customMessage) {
 
 async function listOpenRequestDrafts(env) {
   const drafts = [];
-  let nextUrl = `https://${env.SHOPIFY_STORE}/admin/api/2024-10/draft_orders.json?status=open&limit=250`;
+  let nextUrl = `${shopifyAdminBase(env)}/draft_orders.json?status=open&limit=250`;
   let pages = 0;
   const maxPages = 20;
 
@@ -1818,7 +1830,7 @@ function nextUrlFromLinkHeader(linkHeader) {
 }
 
 async function deleteDraftOrderHard(env, draftId) {
-  const response = await fetch(`https://${env.SHOPIFY_STORE}/admin/api/2024-10/draft_orders/${draftId}.json`, {
+  const response = await fetch(`${shopifyAdminBase(env)}/draft_orders/${draftId}.json`, {
     method: "DELETE",
     headers: {
       "X-Shopify-Access-Token": env.SHOPIFY_ADMIN_TOKEN,
@@ -2352,14 +2364,24 @@ async function fetchVariantDetailsMap(env, variantIds) {
             inventoryItem {
               legacyResourceId
             }
-            image {
-              url(transform: { maxWidth: 160, maxHeight: 160 })
+            media(first: 1) {
+              nodes {
+                preview {
+                  image {
+                    url(transform: { maxWidth: 160, maxHeight: 160 })
+                  }
+                }
+              }
             }
             product {
               title
               vendor
-              featuredImage {
-                url(transform: { maxWidth: 160, maxHeight: 160 })
+              featuredMedia {
+                preview {
+                  image {
+                    url(transform: { maxWidth: 160, maxHeight: 160 })
+                  }
+                }
               }
             }
           }
@@ -2375,7 +2397,7 @@ async function fetchVariantDetailsMap(env, variantIds) {
         productTitle: node.product?.title || "",
         vendor: node.product?.vendor || "",
         inventoryItemId: Number(node.inventoryItem?.legacyResourceId) || null,
-        imageUrl: node.image?.url || node.product?.featuredImage?.url || ""
+        imageUrl: node.media?.nodes?.[0]?.preview?.image?.url || node.product?.featuredMedia?.preview?.image?.url || ""
       });
     }
   }
