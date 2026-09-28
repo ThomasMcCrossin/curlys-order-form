@@ -18,6 +18,7 @@ and the [change record](changes/2026-08-09-doctrine-conversion.md).
 | Issue | Mission | Scope | Route |
 | --- | --- | --- | --- |
 | [#6](https://github.com/ThomasMcCrossin/curlys-order-form/issues/6) — **CLOSED, done and deployed** | [Product-search relevance and UI/UX audit](missions/issue-6-search-relevance-ui-audit.md) | Audit responsive search UX and rank title matches before vendor and broader metadata matches. | `multi-surface-audit` / parallel specialists, then bounded implementation — **complete**: candidate merged to `main` by PR #7 at merge commit `a699a5669fe1ed768b851b41da9943e380f61580` (2026-09-26), merge-triggered Cloudflare Pages and Workers checks passed, post-merge live readback confirmed title-first ordering, and issue #6 is CLOSED |
+| [#10](https://github.com/ThomasMcCrossin/curlys-order-form/issues/10) | [Viewport wrapping and overflow fixes](missions/issue-10-viewport-ui-fixes.md) | Presentation-only fixes in `public/index.html` and `public/dashboard.html` from a mocked-Worker Playwright audit at 320–1920px. | Owner-authorized merge and deploy on 2026-09-28; live readback recorded on the issue. |
 
 **Issue #6 — done and deployed (2026-09-26 closeout).** The audit report
 [`docs/audits/2026-09-24-product-search-ui-ux.md`](audits/2026-09-24-product-search-ui-ux.md)
