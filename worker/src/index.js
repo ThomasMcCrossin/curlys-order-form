@@ -1,3 +1,11 @@
+import {
+  renderRequestReceivedEmail,
+  renderBackInStockEmail,
+  renderReadyForPickupEmail,
+  invoiceCustomMessage,
+  wrapStaffEmail
+} from "./emails.js";
+
 const STOCKY_LOOKUP_CACHE = {
   lookup: null,
   expiresAt: 0
@@ -235,34 +243,19 @@ export default {
         const notifyCustomer = body.notifyCustomer !== false;
 
         if (env.RESEND_API_KEY && env.FROM_EMAIL && customerEmail && notifyCustomer) {
-          const itemList = buildLineItemListHtml(emailLineItems, {
-            includePrice: true,
-            includeSku: false,
-            includeVariantId: false,
-            includeVendor: true
+          const received = renderRequestReceivedEmail({
+            reference: draft?.name || draft?.id,
+            lineItems: emailLineItems,
+            firstName: customer?.first_name || body?.customer?.firstName
           });
 
           await sendResend(env, {
             from: env.FROM_EMAIL,
             to: customerEmail,
             reply_to: env.STAFF_EMAIL || undefined,
-            subject: "We received your request - Curly's Sports Supplements",
-            html: `
-              <h2 style="color: #333;">Order Request Received</h2>
-              <p>Thanks! Your request has been received and we'll get it ordered in for you.</p>
-
-              <p><strong>Reference Number:</strong> ${draft?.name || draft?.id}</p>
-
-              <h3 style="color: #555; font-size: 16px;">Items Requested:</h3>
-              <ul style="padding-left: 20px;">
-                ${itemList}
-              </ul>
-
-              <p>We'll email you again when your items are in stock.</p>
-              <p style="color: #666; font-size: 14px; margin-top: 20px;">
-                Questions? Reply to this email or call us at the store.
-              </p>
-            `
+            subject: received.subject,
+            html: received.html,
+            text: received.text
           });
         }
 
@@ -281,15 +274,15 @@ export default {
             subject: customerEmail
               ? `Order request received (email on file): ${draft?.name || draft?.id}`
               : `Order request — customer has NO email: ${draft?.name || draft?.id}`,
-            html: `
-              <p><strong>Draft:</strong> <a href="${adminUrl}">${draft?.name || draft?.id}</a></p>
-              <p><strong>Email:</strong> ${customerEmail || "(none)"}<br/>
-              <strong>Phone:</strong> ${phone || "(none)"}</p>
+            html: wrapStaffEmail({ title: "Order request received", bodyHtml: `
+              <p><strong>Draft:</strong> <a href="${escapeHtmlText(adminUrl)}">${escapeHtmlText(draft?.name || draft?.id)}</a></p>
+              <p><strong>Email:</strong> ${escapeHtmlText(customerEmail || "(none)")}<br/>
+              <strong>Phone:</strong> ${escapeHtmlText(phone || "(none)")}</p>
               <h3 style="margin-bottom: 8px;">Items:</h3>
               <ul style="padding-left: 20px; margin: 0;">
                 ${staffItems}
               </ul>
-            `
+            ` })
           });
         }
 
@@ -661,33 +654,21 @@ export default {
           return json({ ok: false, error: 'No email on file' }, 400);
         }
 
-        const message = customMessage || 'Your items have arrived and are ready for pickup!';
         const enrichedLineItems = await enrichLineItemsForEmail(draftData.line_items || [], env);
-        const itemList = buildLineItemListHtml(enrichedLineItems, {
-          includePrice: false,
-          includeSku: true,
-          includeVariantId: false,
-          includeVendor: true
+        const ready = renderReadyForPickupEmail({
+          reference: draftData.name,
+          lineItems: enrichedLineItems,
+          message: customMessage,
+          firstName: draftData.customer?.first_name
         });
 
         await sendResend(env, {
           from: env.FROM_EMAIL,
           to: email,
           reply_to: env.STAFF_EMAIL,
-          subject: `Your order is ready - ${draftData.name}`,
-          html: `
-            <h2 style="color: #333;">Your Items Have Arrived!</h2>
-            <p>${message}</p>
-            <p><strong>Reference Number:</strong> ${draftData.name}</p>
-            <h3 style="margin-bottom: 8px;">Items:</h3>
-            <ul style="padding-left: 20px; margin-top: 0;">
-              ${itemList}
-            </ul>
-            <p>You can come pick them up at your convenience or we can send you a payment link.</p>
-            <p style="color: #666; font-size: 14px; margin-top: 20px;">
-              Questions? Reply to this email or call us at the store.
-            </p>
-          `
+          subject: ready.subject,
+          html: ready.html,
+          text: ready.text
         });
 
         return json({ ok: true }, 200);
@@ -771,24 +752,32 @@ export default {
           let invoiceError = null;
 
           if (email && env.RESEND_API_KEY && env.FROM_EMAIL) {
+            // Rest of the draft that hasn't had its own in-stock email yet (no extra Shopify calls).
+            const otherLineItems = (draft.line_items || []).filter(li =>
+              li !== matchedLineItem &&
+              !(li?.variant_id && Number(li.variant_id) === Number(variantId)) &&
+              !(li?.variant_id && noteAttributes.some(na => na?.name === `notified_variant_${li.variant_id}`))
+            );
+            const inStock = renderBackInStockEmail({
+              reference: draft.name || draft.id,
+              lineItem: enrichedMatchedLineItem,
+              otherLineItems,
+              firstName: draft?.customer?.first_name
+            });
             await sendResend(env, {
               from: env.FROM_EMAIL,
               to: email,
               reply_to: env.STAFF_EMAIL || undefined,
-              subject: `Now in stock: ${productName || "Your requested item"}`,
-              html: `
-                <p>Good news—your requested item is now in stock.</p>
-                <p><strong>Reference:</strong> ${draft.name || draft.id}</p>
-                <p><strong>Item:</strong> ${escapeHtmlText(matchedItemSummary)}</p>
-                <p>You can pay now to reserve it, or visit us in-store.</p>
-              `
+              subject: inStock.subject,
+              html: inStock.html,
+              text: inStock.text
             });
             customerSent = true;
           }
 
           if (autoInvoice && email) {
             try {
-              await sendInvoice(env, draft, "You can pay now to reserve it, or come in to buy. Thanks!");
+              await sendInvoice(env, draft, invoiceCustomMessage());
               invoiceSent = true;
             } catch (e) {
               invoiceError = e?.message || String(e);
@@ -809,15 +798,15 @@ export default {
               from: env.FROM_EMAIL,
               to: env.STAFF_EMAIL,
               subject: `Customer ${email ? "notified" : "has no email"} — ${productName || "Requested item"}`,
-              html: `
+              html: wrapStaffEmail({ title: "Back in stock", bodyHtml: `
                 <p><strong>Item:</strong> ${escapeHtmlText(matchedItemSummary)}</p>
-                <p><strong>Customer Email:</strong> ${email || "(none)"}</p>
+                <p><strong>Customer Email:</strong> ${escapeHtmlText(email || "(none)")}</p>
                 <p><strong>Customer Email Sent:</strong> ${customerSent ? "Yes" : "No"}</p>
                 <p><strong>Shopify Invoice Sent:</strong> ${invoiceSent ? "Yes" : "No"}</p>
                 ${invoiceError ? `<p><strong>Invoice Error:</strong> ${escapeHtmlText(invoiceError)}</p>` : ""}
                 <p><a href="https://${env.SHOPIFY_STORE}/admin/draft_orders/${draft.id}">Open Draft</a></p>
                 <p>Please set the item aside.</p>
-              `
+              ` })
             });
           }
 
@@ -1366,6 +1355,7 @@ function enrichLineItemsFromMap(lineItems, detailsMap) {
       enriched.variant_title = details.variantTitle;
     }
     if (!enriched.title && details.productTitle) enriched.title = details.productTitle;
+    if (!enriched.image_url && details.imageUrl) enriched.image_url = details.imageUrl;
     if (!enriched.inventory_item_id && details.inventoryItemId) {
       enriched.inventory_item_id = details.inventoryItemId;
     }
@@ -1756,7 +1746,7 @@ async function findOrAttachCustomer(customerInput, env) {
 async function sendInvoice(env, draft, customMessage) {
   await shopifyRest(env, `/draft_orders/${draft.id}/send_invoice.json`, "POST", {
     draft_order_invoice: {
-      custom_message: customMessage || "You can pay now to reserve it, or visit us in-store."
+      custom_message: customMessage || invoiceCustomMessage()
     }
   });
 }
@@ -2297,7 +2287,7 @@ async function sendReconcileSummary(env, reconcileResult, sourceLabel = "Schedul
     from: env.FROM_EMAIL,
     to: env.STAFF_EMAIL,
     subject: `${sourceLabel} reconcile: ${reconcileResult.deletedDrafts} request(s) auto-deleted`,
-    html: `
+    html: wrapStaffEmail({ title: "Purchase reconciliation", bodyHtml: `
       <h2 style="margin-bottom: 8px;">Purchase Reconciliation Summary</h2>
       <p style="margin: 0 0 12px;">
         Scanned: ${reconcileResult.scannedDrafts} •
@@ -2308,7 +2298,7 @@ async function sendReconcileSummary(env, reconcileResult, sourceLabel = "Schedul
       <ol style="padding-left: 20px; margin: 0;">
         ${rows}
       </ol>
-    `
+    ` })
   });
 }
 
@@ -2342,9 +2332,15 @@ async function fetchVariantDetailsMap(env, variantIds) {
             inventoryItem {
               legacyResourceId
             }
+            image {
+              url(transform: { maxWidth: 160, maxHeight: 160 })
+            }
             product {
               title
               vendor
+              featuredImage {
+                url(transform: { maxWidth: 160, maxHeight: 160 })
+              }
             }
           }
         }
@@ -2358,7 +2354,8 @@ async function fetchVariantDetailsMap(env, variantIds) {
         variantTitle: normalizeVariantTitle(node.displayName || ""),
         productTitle: node.product?.title || "",
         vendor: node.product?.vendor || "",
-        inventoryItemId: Number(node.inventoryItem?.legacyResourceId) || null
+        inventoryItemId: Number(node.inventoryItem?.legacyResourceId) || null,
+        imageUrl: node.image?.url || node.product?.featuredImage?.url || ""
       });
     }
   }
@@ -2417,7 +2414,7 @@ async function sendPendingReminderDigest(env) {
 
     return `
       <li style="margin-bottom: 14px;">
-        <a href="${adminUrl}" style="font-weight: 600;">${escapeHtmlText(draft.name || `#${draft.id}`)}</a>
+        <a href="${escapeHtmlText(adminUrl)}" style="font-weight: 600;">${escapeHtmlText(draft.name || `#${draft.id}`)}</a>
         <div style="font-size: 14px; color: #555;">
           ${escapeHtmlText(customerName)} • ${escapeHtmlText(email)} • ${reminder.ageDays} day(s) pending
         </div>
@@ -2433,7 +2430,7 @@ async function sendPendingReminderDigest(env) {
     from: env.FROM_EMAIL,
     to: env.STAFF_EMAIL,
     subject,
-    html: `
+    html: wrapStaffEmail({ title: "Pending order reminders", bodyHtml: `
       <h2 style="margin-bottom: 8px;">Pending Order Reminder Digest</h2>
       <p style="margin: 0 0 12px 0;">
         ${actionable.length} order(s) need attention.
@@ -2450,7 +2447,7 @@ async function sendPendingReminderDigest(env) {
       <p style="margin-top: 18px; color: #666; font-size: 13px;">
         Use dashboard actions to snooze or mute reminders for items you know you won't get.
       </p>
-    `
+    ` })
   });
 }
 

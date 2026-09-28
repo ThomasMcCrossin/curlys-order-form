@@ -13,6 +13,7 @@ Dispatchable technical work converted from the 2026-08-09 legacy checklists:
 Presentation fixes:
 
 - [Issue #10 — viewport wrapping and overflow fixes](issue-10-viewport-ui-fixes.md)
+- [Issue #12 — customer email design and one back-in-stock message](issue-12-customer-email-design.md)
 
 Discovery scaffold, not ready for implementation:
 
