@@ -746,35 +746,47 @@
           <h3 id="selectedCustomerName"></h3>
           <p id="selectedCustomerEmail"></p>
           <p id="selectedCustomerPhone"></p>
-          <div id="missingPhonePrompt" style="display: none; margin-top: 0.5rem;">
-            <button class="btn btn-link" type="button" onclick="showPhoneNumberSection()">Add phone number</button>
+          <div id="missingEmailPrompt" style="display: none; margin-top: 0.5rem;">
+            <button class="btn btn-link" type="button" onclick="showEmailSection()">Add email</button>
           </div>
         </div>
         <button class="btn btn-link" onclick="clearCustomer()">Change</button>
       </div>
 
-      <!-- Phone Number Input (shown when customer selected) -->
-      <div id="phoneNumberSection" class="form-group" style="display: none; margin-top: 1rem;">
-        <label for="customerPhoneInput">Customer Phone Number *</label>
+      <!-- Email Input (shown when the selected customer has no email) -->
+      <div id="emailSection" class="form-group" style="display: none; margin-top: 1rem;">
+        <label for="customerEmailInput">Customer Email *</label>
         <input
-          type="tel"
-          id="customerPhoneInput"
-          placeholder="(555) 123-4567"
-          autocomplete="tel"
+          type="email"
+          id="customerEmailInput"
+          placeholder="john@example.com"
+          autocomplete="email"
         >
-        <small id="phoneVerifyNote" style="display: none; color: #666; margin-top: 0.25rem;">
-          ℹ️ Please verify this number with the customer
-        </small>
-        <small id="phoneErrorNote" style="display: none; color: #dc3545; margin-top: 0.25rem;"></small>
+        <small id="emailErrorNote" style="display: none; color: #dc3545; margin-top: 0.25rem;"></small>
         <div style="margin-top: 0.5rem;">
           <label class="checkbox-label">
             <input
               type="checkbox"
-              id="phoneRefusedCheckbox"
-              onchange="togglePhoneRequired()"
+              id="emailRefusedCheckbox"
+              onchange="toggleEmailRequired()"
             >
-            Customer refused to provide phone number
+            Customer refused to provide email
           </label>
+        </div>
+        <!-- Phone (shown only when the selected customer also has no phone) -->
+        <div id="customerPhoneGroup" style="display: none; margin-top: 0.75rem;">
+          <label for="customerPhoneInput">Customer Phone Number</label>
+          <input
+            type="tel"
+            id="customerPhoneInput"
+            placeholder="(555) 123-4567"
+            autocomplete="tel"
+            aria-describedby="customerPhoneHint"
+          >
+          <small id="customerPhoneHint" style="display: block; color: #666; margin-top: 0.25rem;">
+            Optional. Required if the customer refused email.
+          </small>
+          <small id="phoneErrorNote" style="display: none; color: #dc3545; margin-top: 0.25rem;"></small>
         </div>
       </div>
 
@@ -811,22 +823,26 @@
           <div class="form-row">
             <div class="form-group">
               <label for="email">Email *</label>
-              <input type="email" id="email" placeholder="john@example.com" required>
-            </div>
-            <div class="form-group">
-              <label for="phone">Phone *</label>
-              <input type="tel" id="phone" placeholder="(555) 123-4567">
-              <small id="manualPhoneErrorNote" style="display: none; color: #dc3545; margin-top: 0.25rem;"></small>
+              <input type="email" id="email" placeholder="john@example.com">
+              <small id="manualEmailErrorNote" style="display: none; color: #dc3545; margin-top: 0.25rem;"></small>
               <div style="margin-top: 0.5rem;">
                 <label class="checkbox-label">
                   <input
                     type="checkbox"
-                    id="manualPhoneRefusedCheckbox"
-                    onchange="toggleManualPhoneRequired()"
+                    id="manualEmailRefusedCheckbox"
+                    onchange="toggleManualEmailRequired()"
                   >
-                  Customer refused to provide phone number
+                  Customer refused to provide email
                 </label>
               </div>
+            </div>
+            <div class="form-group">
+              <label for="phone">Phone</label>
+              <input type="tel" id="phone" placeholder="(555) 123-4567" aria-describedby="manualPhoneHint">
+              <small id="manualPhoneHint" style="display: block; color: #666; margin-top: 0.25rem;">
+                Optional. Required if the customer refused email.
+              </small>
+              <small id="manualPhoneErrorNote" style="display: none; color: #dc3545; margin-top: 0.25rem;"></small>
             </div>
           </div>
         </div>
@@ -1074,28 +1090,13 @@
       document.getElementById('selectedCustomerEmail').textContent = customer.email || '';
       document.getElementById('selectedCustomerPhone').textContent = customer.phone || '';
 
-      // Show the phone prompt only when the selected customer has no phone.
-      const phoneSection = document.getElementById('phoneNumberSection');
-      const phoneInput = document.getElementById('customerPhoneInput');
-      const phoneVerifyNote = document.getElementById('phoneVerifyNote');
-      const phoneRefusedCheckbox = document.getElementById('phoneRefusedCheckbox');
-      const missingPhonePrompt = document.getElementById('missingPhonePrompt');
-
-      phoneSection.style.display = 'none';
-      missingPhonePrompt.style.display = customer.phone ? 'none' : 'block';
-      phoneRefusedCheckbox.checked = false;
-      phoneInput.disabled = false;
-      document.getElementById('phoneErrorNote').style.display = 'none';
-
-      if (customer.phone) {
-        // Customer has a phone - retain the existing customer data without an edit field.
-        phoneInput.value = formatPhoneDisplay(customer.phone);
-        phoneVerifyNote.style.display = 'block';
-      } else {
-        // No phone - offer the inline controls on demand.
-        phoneInput.value = '';
-        phoneVerifyNote.style.display = 'none';
-      }
+      // Show the email prompt only when the selected customer has no email.
+      // A customer missing only a phone gets no prompt.
+      document.getElementById('emailSection').style.display = 'none';
+      document.getElementById('missingEmailPrompt').style.display = customer.email ? 'none' : 'block';
+      resetContactControls();
+      // Offer a phone field inside the email section only when there is no phone on file either.
+      document.getElementById('customerPhoneGroup').style.display = customer.phone ? 'none' : 'block';
 
       // Hide search section
       document.getElementById('customerSearchSection').style.display = 'none';
@@ -1106,26 +1107,81 @@
     function clearCustomer() {
       selectedCustomer = null;
       document.getElementById('selectedCustomerCard').style.display = 'none';
-      document.getElementById('phoneNumberSection').style.display = 'none';
-      document.getElementById('missingPhonePrompt').style.display = 'none';
-      resetPhoneControls();
+      document.getElementById('emailSection').style.display = 'none';
+      document.getElementById('missingEmailPrompt').style.display = 'none';
+      resetContactControls();
       document.getElementById('customerSearchSection').style.display = 'block';
       document.getElementById('customerSearch').focus();
     }
 
-    function showPhoneNumberSection() {
-      const phoneSection = document.getElementById('phoneNumberSection');
-      phoneSection.style.display = 'block';
-      document.getElementById('missingPhonePrompt').style.display = 'none';
-      document.getElementById('customerPhoneInput').focus();
+    function showEmailSection() {
+      document.getElementById('emailSection').style.display = 'block';
+      document.getElementById('missingEmailPrompt').style.display = 'none';
+      document.getElementById('customerEmailInput').focus();
     }
 
-    function resetPhoneControls() {
+    function resetContactControls() {
+      document.getElementById('customerEmailInput').value = '';
+      document.getElementById('customerEmailInput').disabled = false;
+      document.getElementById('emailRefusedCheckbox').checked = false;
+      document.getElementById('emailErrorNote').style.display = 'none';
       document.getElementById('customerPhoneInput').value = '';
-      document.getElementById('customerPhoneInput').disabled = false;
-      document.getElementById('phoneRefusedCheckbox').checked = false;
-      document.getElementById('phoneVerifyNote').style.display = 'none';
       document.getElementById('phoneErrorNote').style.display = 'none';
+    }
+
+    // Email is the required contact. If the customer refuses email, a phone is
+    // required instead (the Worker rejects requests with neither). An entered
+    // phone must always pass format validation. Returns true when submittable.
+    function validateContactFields() {
+      let emailRefused, emailInput, emailErrorNote, phoneInput, phoneErrorNote, phoneOnFile;
+
+      if (selectedCustomer) {
+        if (selectedCustomer.email) return true;
+        if (document.getElementById('emailSection').style.display === 'none') {
+          showEmailSection();
+        }
+        emailInput = document.getElementById('customerEmailInput');
+        emailErrorNote = document.getElementById('emailErrorNote');
+        emailRefused = document.getElementById('emailRefusedCheckbox').checked;
+        phoneInput = document.getElementById('customerPhoneInput');
+        phoneErrorNote = document.getElementById('phoneErrorNote');
+        phoneOnFile = !!selectedCustomer.phone;
+      } else {
+        emailInput = document.getElementById('email');
+        emailErrorNote = document.getElementById('manualEmailErrorNote');
+        emailRefused = document.getElementById('manualEmailRefusedCheckbox').checked;
+        phoneInput = document.getElementById('phone');
+        phoneErrorNote = document.getElementById('manualPhoneErrorNote');
+        phoneOnFile = false;
+      }
+
+      emailErrorNote.style.display = 'none';
+      phoneErrorNote.style.display = 'none';
+
+      if (!emailRefused) {
+        const emailValidation = validateEmail(emailInput.value.trim());
+        if (!emailValidation.valid) {
+          emailErrorNote.textContent = emailValidation.error;
+          emailErrorNote.style.display = 'block';
+          emailInput.focus();
+          return false;
+        }
+      }
+
+      const phone = phoneOnFile ? '' : phoneInput.value.trim();
+      if (phone || (emailRefused && !phoneOnFile)) {
+        const phoneValidation = validatePhone(phone);
+        if (!phoneValidation.valid) {
+          phoneErrorNote.textContent = phone
+            ? phoneValidation.error
+            : 'Phone number is required when the customer refuses email';
+          phoneErrorNote.style.display = 'block';
+          phoneInput.focus();
+          return false;
+        }
+      }
+
+      return true;
     }
 
     function toggleManualEntry() {
@@ -1494,61 +1550,21 @@
     async function submitOrder() {
       hideMessages();
 
-      // Validate phone number if customer is selected
-      if (selectedCustomer) {
-        if (!selectedCustomer.phone && document.getElementById('phoneNumberSection').style.display === 'none') {
-          showPhoneNumberSection();
-        }
-        const phoneInput = document.getElementById('customerPhoneInput');
-        const phoneRefused = document.getElementById('phoneRefusedCheckbox').checked;
-        const phoneErrorNote = document.getElementById('phoneErrorNote');
-
-        if (!phoneRefused) {
-          const phoneValidation = validatePhone(phoneInput.value);
-          if (!phoneValidation.valid) {
-            phoneErrorNote.textContent = phoneValidation.error;
-            phoneErrorNote.style.display = 'block';
-            phoneInput.focus();
-            return;
-          }
-          phoneErrorNote.style.display = 'none';
-        }
-      } else {
-        // Validate phone number for manual entry
-        const manualFields = document.getElementById('manualCustomerFields');
-        if (manualFields.classList.contains('show')) {
-          const phoneInput = document.getElementById('phone');
-          const phoneRefused = document.getElementById('manualPhoneRefusedCheckbox').checked;
-          const phoneErrorNote = document.getElementById('manualPhoneErrorNote');
-
-          if (!phoneRefused) {
-            const phoneValidation = validatePhone(phoneInput.value);
-            if (!phoneValidation.valid) {
-              phoneErrorNote.textContent = phoneValidation.error;
-              phoneErrorNote.style.display = 'block';
-              phoneInput.focus();
-              return;
-            }
-            phoneErrorNote.style.display = 'none';
-          }
-        }
+      // Validate contact details (email required unless refused)
+      if (!selectedCustomer && !document.getElementById('manualCustomerFields').classList.contains('show')) {
+        showError('Please select a customer or enter customer details');
+        return;
+      }
+      if (!validateContactFields()) {
+        return;
       }
 
       // Validation
       const customer = getCustomerData();
 
-      // For new customers (manual entry), require email for notifications to work
-      if (!selectedCustomer) {
-        if (!customer.email) {
-          showError('Email is required for new customers (needed for order notifications)');
-          document.getElementById('email').focus();
-          return;
-        }
-      }
-
-      // For existing customers, ensure at least email or phone
+      // The Worker requires at least an email or phone
       if (!customer.email && !customer.phone) {
-        showError('Please provide at least an email or phone number');
+        showError('Please provide an email, or a phone number if the customer refused email');
         return;
       }
 
@@ -1611,12 +1627,14 @@
 
     function getCustomerData() {
       if (selectedCustomer) {
-        const phoneRefused = document.getElementById('phoneRefusedCheckbox').checked;
-        let phone = '';
+        let email = selectedCustomer.email || '';
+        let phone = selectedCustomer.phone || '';
 
-        if (!phoneRefused) {
-          const phoneInput = document.getElementById('customerPhoneInput').value.trim();
-          const phoneValidation = validatePhone(phoneInput);
+        if (!email && !document.getElementById('emailRefusedCheckbox').checked) {
+          email = document.getElementById('customerEmailInput').value.trim();
+        }
+        if (!phone) {
+          const phoneValidation = validatePhone(document.getElementById('customerPhoneInput').value.trim());
           if (phoneValidation.valid) {
             phone = phoneValidation.normalized;
           }
@@ -1626,27 +1644,23 @@
           id: selectedCustomer.id,
           firstName: selectedCustomer.firstName,
           lastName: selectedCustomer.lastName,
-          email: selectedCustomer.email,
-          phone: phone || selectedCustomer.phone || ''
+          email: email,
+          phone: phone
         };
       }
 
       // Manual entry
-      const phoneRefused = document.getElementById('manualPhoneRefusedCheckbox').checked;
+      const emailRefused = document.getElementById('manualEmailRefusedCheckbox').checked;
       let phone = '';
-
-      if (!phoneRefused) {
-        const phoneInput = document.getElementById('phone').value.trim();
-        const phoneValidation = validatePhone(phoneInput);
-        if (phoneValidation.valid) {
-          phone = phoneValidation.normalized;
-        }
+      const phoneValidation = validatePhone(document.getElementById('phone').value.trim());
+      if (phoneValidation.valid) {
+        phone = phoneValidation.normalized;
       }
 
       return {
         firstName: document.getElementById('firstName').value.trim(),
         lastName: document.getElementById('lastName').value.trim(),
-        email: document.getElementById('email').value.trim(),
+        email: emailRefused ? '' : document.getElementById('email').value.trim(),
         phone: phone
       };
     }
@@ -1719,9 +1733,13 @@
       document.getElementById('customQuantity').value = '1';
       
       document.getElementById('selectedCustomerCard').style.display = 'none';
-      document.getElementById('phoneNumberSection').style.display = 'none';
-      document.getElementById('missingPhonePrompt').style.display = 'none';
-      resetPhoneControls();
+      document.getElementById('emailSection').style.display = 'none';
+      document.getElementById('missingEmailPrompt').style.display = 'none';
+      resetContactControls();
+      document.getElementById('manualEmailRefusedCheckbox').checked = false;
+      document.getElementById('email').disabled = false;
+      document.getElementById('manualEmailErrorNote').style.display = 'none';
+      document.getElementById('manualPhoneErrorNote').style.display = 'none';
       document.getElementById('customerSearchSection').style.display = 'block';
       document.getElementById('manualCustomerFields').classList.remove('show');
       document.getElementById('customItemSection').classList.remove('show');
@@ -1790,33 +1808,39 @@
       }
     }
 
-    function togglePhoneRequired() {
-      const checkbox = document.getElementById('phoneRefusedCheckbox');
-      const phoneInput = document.getElementById('customerPhoneInput');
-      const phoneErrorNote = document.getElementById('phoneErrorNote');
+    function validateEmail(email) {
+      if (!email) return { valid: false, error: 'Email is required (or tick "Customer refused to provide email")' };
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return { valid: false, error: 'Enter a valid email address' };
+      }
+      return { valid: true };
+    }
+
+    function toggleEmailRequired() {
+      const checkbox = document.getElementById('emailRefusedCheckbox');
+      const emailInput = document.getElementById('customerEmailInput');
 
       if (checkbox.checked) {
-        phoneInput.disabled = true;
-        phoneInput.value = '';
-        phoneErrorNote.style.display = 'none';
+        emailInput.disabled = true;
+        emailInput.value = '';
+        document.getElementById('emailErrorNote').style.display = 'none';
       } else {
-        phoneInput.disabled = false;
-        phoneInput.focus();
+        emailInput.disabled = false;
+        emailInput.focus();
       }
     }
 
-    function toggleManualPhoneRequired() {
-      const checkbox = document.getElementById('manualPhoneRefusedCheckbox');
-      const phoneInput = document.getElementById('phone');
-      const phoneErrorNote = document.getElementById('manualPhoneErrorNote');
+    function toggleManualEmailRequired() {
+      const checkbox = document.getElementById('manualEmailRefusedCheckbox');
+      const emailInput = document.getElementById('email');
 
       if (checkbox.checked) {
-        phoneInput.disabled = true;
-        phoneInput.value = '';
-        phoneErrorNote.style.display = 'none';
+        emailInput.disabled = true;
+        emailInput.value = '';
+        document.getElementById('manualEmailErrorNote').style.display = 'none';
       } else {
-        phoneInput.disabled = false;
-        phoneInput.focus();
+        emailInput.disabled = false;
+        emailInput.focus();
       }
     }
   </script>
