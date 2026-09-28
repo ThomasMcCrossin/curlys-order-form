@@ -9,6 +9,7 @@ Dispatchable technical work converted from the 2026-08-09 legacy checklists:
 
 - [Issue #2 — limit grouped product search results](issue-2-limit-grouped-product-search-results.md)
 - [Issue #3 — progressive disclosure for missing phone](issue-3-progressive-disclosure-missing-phone.md)
+- [Issue #13 — require email with refused-email escape](issue-13-require-email-gate.md) (supersedes #3)
 
 Presentation fixes:
 
