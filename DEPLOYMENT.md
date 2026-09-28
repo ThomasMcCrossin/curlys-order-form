@@ -69,9 +69,9 @@ After setup, every push to `main` branch will:
 - Phone validation, variant grouping, email settings - everything!
 
 ### ✅ Worker Configuration
-- FROM_EMAIL: `tom@curlys.ca`
+- FROM_EMAIL: `Curly's Sports & Supplements <orders@curlys.ca>` (replies go to STAFF_EMAIL)
 - STAFF_EMAIL: `tom@curlys.ca`
-- AUTO_INVOICE_ON_STOCK: `true`
+- AUTO_INVOICE_ON_STOCK: `false` (owner decision 2026-09-28: one back-in-stock email, no Shopify invoice; set `true` to re-enable)
 - All environment variables preserved
 
 ### ✅ Worker URL
@@ -114,10 +114,10 @@ After setup, every push to `main` branch will:
 ### Worker Environment Variables (Already Configured)
 ```toml
 SHOPIFY_STORE = "curlys-sports-supplements.myshopify.com"
-FROM_EMAIL = "tom@curlys.ca"
+FROM_EMAIL = "Curly's Sports & Supplements <orders@curlys.ca>"
 STAFF_EMAIL = "tom@curlys.ca"
 STAFF_NOTIFY_ALL = "true"
-AUTO_INVOICE_ON_STOCK = "true"
+AUTO_INVOICE_ON_STOCK = "false"
 ```
 
 ### Worker Secrets (Not in Git - Already Set in Cloudflare)

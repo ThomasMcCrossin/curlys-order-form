@@ -65,11 +65,13 @@ record.
 
 The following remain decisions for an authorized operator and are not issues:
 
-- Back-in-stock delivery policy: remove the duplicate plain-text message versus
-  send only the Shopify draft-order invoice, including the related
-  `AUTO_INVOICE_ON_STOCK` behavior (TODO lines 6-8).
-- Branding, sender, deliverability, and live `FROM_EMAIL` configuration (TODO
-  lines 11 and 17-19; line 16 is tracked configuration only).
+- Decided 2026-09-28 by the owner (branch `feat/customer-email-design`): the
+  store does not hold items; a back-in-stock event sends one message, our own
+  email, with `AUTO_INVOICE_ON_STOCK = "false"` (the `sendInvoice` path stays,
+  switched off); sender is `Curly's Sports & Supplements <orders@curlys.ca>` with
+  reply-to `STAFF_EMAIL`; customer email copy lives only in
+  `worker/src/emails.js`. Deploying that configuration still needs scoped
+  Cloudflare authority and readback.
 - Whether to authorize a dedicated customer-phone endpoint and the live
   `write_customers` permission (TODO lines 66-67).
 - Whether draft and archived products are included by default or behind a

@@ -99,10 +99,10 @@ These are already configured in your Cloudflare Worker (don't need to set them a
 | SHOPIFY_STORE | curlys-sports-supplements.myshopify.com | Variable |
 | SHOPIFY_ADMIN_TOKEN | *(hidden)* | Secret |
 | RESEND_API_KEY | *(hidden)* | Secret |
-| FROM_EMAIL | dwayne@curlys.ca | Variable |
-| STAFF_EMAIL | dwayne@curlys.ca | Variable |
+| FROM_EMAIL | Curly's Sports & Supplements <orders@curlys.ca> | Variable |
+| STAFF_EMAIL | tom@curlys.ca | Variable |
 | STAFF_NOTIFY_ALL | true | Variable |
-| AUTO_INVOICE_ON_STOCK | true | Variable |
+| AUTO_INVOICE_ON_STOCK | false | Variable |
 
 **Note:** `FLOW_SHARED_SECRET` is stored as a Cloudflare secret (not in Git).
 
