@@ -5,7 +5,7 @@ import worker from '../src/index.js';
 const env = { SHOPIFY_STORE: 'fixture.invalid', SHOPIFY_ADMIN_TOKEN: 'fixture-only' };
 
 // Submit one order request against a mocked Shopify and record every Shopify call.
-async function submit(customer, customers = {}, { failEmailPut = false } = {}) {
+async function submit(customer, customers = {}, { failEmailPut = false, searchResults = [], rejectPhoneOnCreate = false } = {}) {
   const calls = [];
   const realFetch = globalThis.fetch;
   globalThis.fetch = async (input, init = {}) => {
@@ -20,8 +20,11 @@ async function submit(customer, customers = {}, { failEmailPut = false } = {}) {
       const found = customers[byId[1]];
       return found ? ok({ customer: { ...found } }) : new Response('{}', { status: 404 });
     }
-    if (url.pathname.endsWith('/customers/search.json')) return ok({ customers: [] });
-    if (url.pathname.endsWith('/customers.json')) return ok({ customer: { id: 999, ...body.customer } });
+    if (url.pathname.endsWith('/customers/search.json')) return ok({ customers: searchResults });
+    if (url.pathname.endsWith('/customers.json')) {
+      if (rejectPhoneOnCreate && body.customer.phone) return new Response('{"errors":{"phone":["has already been taken"]}}', { status: 422 });
+      return ok({ customer: { id: 999, ...body.customer } });
+    }
     if (url.pathname.endsWith('/draft_orders.json')) return ok({ draft_order: { id: 1, name: '#D1', line_items: [] } });
     if (url.pathname.endsWith('/graphql.json')) return ok({ data: { nodes: [] } });
     throw new Error(`unmocked ${method} ${url}`);
@@ -73,4 +76,27 @@ test('manual entry without id keeps the email search-or-create path', async () =
   assert.equal(r.status, 200);
   assert.ok(r.calls.some(c => c.path === '/customers/search.json'));
   assert.ok(r.calls.some(c => c.method === 'POST' && c.path === '/customers.json'));
+});
+
+test('email lookup is quoted and only reuses an exact match', async () => {
+  const r = await submit({ email: 'nora@x.ca' }, {}, { searchResults: [{ id: 5, email: 'nora@x.ca.other.com' }, { id: 6, email: 'Nora@X.ca' }] });
+  assert.equal(r.status, 200);
+  const search = r.calls.find(c => c.path === '/customers/search.json');
+  assert.equal(new URLSearchParams(search.search).get('query'), 'email:"nora@x.ca"');
+  assert.deepEqual(r.calls.find(c => c.path === '/draft_orders.json').body.draft_order.customer, { id: 6 });
+});
+
+test('a near-miss email search result is not attached; a new customer is created', async () => {
+  const r = await submit({ email: 'nora@x.ca' }, {}, { searchResults: [{ id: 5, email: 'nora@x.ca.other.com' }] });
+  assert.ok(r.calls.some(c => c.method === 'POST' && c.path === '/customers.json'));
+  assert.deepEqual(r.calls.find(c => c.path === '/draft_orders.json').body.draft_order.customer, { id: 999 });
+});
+
+test('customer create retries without a phone already used by someone else', async () => {
+  const r = await submit({ email: 'mia@example.com', phone: '9025550142' }, {}, { rejectPhoneOnCreate: true });
+  assert.equal(r.status, 200);
+  const creates = r.calls.filter(c => c.method === 'POST' && c.path === '/customers.json');
+  assert.equal(creates.length, 2);
+  assert.equal(creates[1].body.customer.phone, undefined);
+  assert.equal(creates[1].body.customer.email, 'mia@example.com');
 });
