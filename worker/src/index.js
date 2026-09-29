@@ -67,8 +67,9 @@ export default {
         const query = (url.searchParams.get("q") || "").trim();
         if (query.length < 2) return json({ products: [] }, 200);
 
-        const STATUS_FILTER = "(status:ACTIVE OR status:DRAFT OR status:ARCHIVED)";
-        const VARIANT_STATUS_FILTER = "(product_status:ACTIVE OR product_status:DRAFT OR product_status:ARCHIVED)";
+        // UNLISTED (API 2025-10+) was reported as ACTIVE on older versions; keep finding it.
+        const STATUS_FILTER = "(status:ACTIVE OR status:UNLISTED OR status:DRAFT OR status:ARCHIVED)";
+        const VARIANT_STATUS_FILTER = "(product_status:ACTIVE OR product_status:UNLISTED OR product_status:DRAFT OR product_status:ARCHIVED)";
         // Reduce user input to literal, punctuation-free tokens so it can never become a
         // Shopify field operator, boolean operator, or wildcard. Lowercasing also keeps an
         // uppercase AND/OR/NOT typed by a user literal instead of a boolean operator.
@@ -907,7 +908,7 @@ function rankProductCandidates(query, identifierEdges, variantEdges, productEdge
   const normalized = normalize(query);
   const queryTokens = normalized.split(" ").filter(Boolean);
   const literal = String(query).trim().toLocaleLowerCase();
-  const statusOrder = { ACTIVE: 0, DRAFT: 1, ARCHIVED: 2 };
+  const statusOrder = { ACTIVE: 0, UNLISTED: 0, DRAFT: 1, ARCHIVED: 2 };
   const variantPayload = node => ({
     variantId: node.legacyResourceId,
     variantTitle: node.title || node.displayName || "Default Title",
@@ -1752,18 +1753,27 @@ async function findOrAttachCustomer(customerInput, env) {
   }
 
   if (email) {
-    const found = await shopifyRest(env, `/customers/search.json?query=email:${encodeURIComponent(email)}`);
-    if (found?.customers?.length) return found.customers[0];
+    // email is a tokenized search field: quote it, then require an exact match.
+    const found = await shopifyRest(env, `/customers/search.json?query=${encodeURIComponent(`email:"${email}"`)}`);
+    const exact = (found?.customers || []).find(c => normalizeEmailAddress(c?.email) === email);
+    if (exact) return exact;
 
-    const created = await shopifyRest(env, `/customers.json`, "POST", {
-      customer: {
-        first_name: customerInput.firstName || "",
-        last_name: customerInput.lastName || "",
-        email,
-        phone: phone || undefined,
-        tags: "order-request-customer"
-      }
-    });
+    const newCustomer = {
+      first_name: customerInput.firstName || "",
+      last_name: customerInput.lastName || "",
+      email,
+      phone: phone || undefined,
+      tags: "order-request-customer"
+    };
+    let created;
+    try {
+      created = await shopifyRest(env, `/customers.json`, "POST", { customer: newCustomer });
+    } catch (e) {
+      // Shopify requires unique phones; if another customer already has it, create without it.
+      if (!phone || !/ 422 /.test(String(e?.message))) throw e;
+      console.error("Customer create rejected with phone; retrying without it:", e);
+      created = await shopifyRest(env, `/customers.json`, "POST", { customer: { ...newCustomer, phone: undefined } });
+    }
     return created?.customer || null;
   }
 

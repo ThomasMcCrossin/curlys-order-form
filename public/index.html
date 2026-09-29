@@ -1246,7 +1246,7 @@
 
           // Add status badge if not ACTIVE
           let statusBadge = '';
-          if (item.status && item.status !== 'ACTIVE') {
+          if (item.status === 'DRAFT' || item.status === 'ARCHIVED') {
             const statusLabel = item.status === 'DRAFT' ? 'Draft' : 'Archived';
             statusBadge = `<span style="display: inline-block; font-size: 11px; padding: 2px 6px; margin-left: 6px; background: #e0e0e0; color: #666; border-radius: 3px; font-weight: 500;">${statusLabel}</span>`;
           }
@@ -1296,7 +1296,7 @@
           if (Number(item.inventoryQuantity) > 0) subtitle.push(`${item.inventoryQuantity} in stock`);
 
           let statusBadge = '';
-          if (item.status && item.status !== 'ACTIVE') {
+          if (item.status === 'DRAFT' || item.status === 'ARCHIVED') {
             const statusLabel = item.status === 'DRAFT' ? 'Draft' : 'Archived';
             statusBadge = `<span style="display: inline-block; font-size: 11px; padding: 2px 6px; margin-left: 6px; background: #e0e0e0; color: #666; border-radius: 3px; font-weight: 500;">${statusLabel}</span>`;
           }

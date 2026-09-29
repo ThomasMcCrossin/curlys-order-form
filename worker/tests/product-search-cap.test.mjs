@@ -206,3 +206,12 @@ test('queries shorter than two characters or without literal tokens issue no Sho
   assert.deepEqual(punctuation.results, []);
   assert.equal(Object.values(punctuation.calls).flat().length, 0);
 });
+
+test('UNLISTED products (API 2025-10+) are searched and rank with ACTIVE', async () => {
+  const unlisted = product('u', 'Sample U', '', 'UNLISTED');
+  const draft = product('d', 'Sample D', '', 'DRAFT');
+  const { results, calls } = await search('sample', { title: [draft, unlisted] });
+  assert.deepEqual(results.map(r => r.status), ['UNLISTED', 'DRAFT']);
+  assert.ok(calls.title[0].includes('status:UNLISTED'));
+  assert.ok(calls.variant[0].includes('product_status:UNLISTED'));
+});
