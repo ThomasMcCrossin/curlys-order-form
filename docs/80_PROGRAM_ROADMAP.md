@@ -6,12 +6,12 @@ ready technical work. The legacy surfaces remain available only as historical
 provenance; see [TODO.md](../TODO.md), [VERIFICATION_CHECKLIST.md](../VERIFICATION_CHECKLIST.md),
 and the [change record](changes/2026-08-09-doctrine-conversion.md).
 
-## Converted technical missions — implementation present, verification pending
+## Converted technical missions — current source status
 
 | Issue | Mission | Scope | Next check |
 | --- | --- | --- | --- |
-| [#2](https://github.com/ThomasMcCrossin/curlys-order-form/issues/2) | [Limit grouped product search results](missions/issue-2-limit-grouped-product-search-results.md) | Return at most 10 grouped products, not 10 variants. | Commit `312eb64` plus deterministic barcode/variant/title fixture checks (`node --test worker/tests/*.test.mjs`) passed locally on 2026-09-23; owner acceptance/review remains. |
-| [#3](https://github.com/ThomasMcCrossin/curlys-order-form/issues/3) | [Progressive disclosure for missing phone](missions/issue-3-progressive-disclosure-missing-phone.md) | Reveal a minimal inline phone input only when the selected customer has no phone. | Commit `19dd6fc` plus disposable-DOM missing/existing-phone fixture checks (`node --test worker/tests/*.test.mjs`) passed locally on 2026-09-23; owner acceptance/review remains. |
+| [#2](https://github.com/ThomasMcCrossin/curlys-order-form/issues/2) | [Limit grouped product search results](missions/issue-2-limit-grouped-product-search-results.md) | Return at most 10 grouped products, not 10 variants. | Present on `main` at `caba4d8`; current offline fixtures verify saturation, parent deduplication, grouped variants and barcode/SKU/title behavior. Full existing gate passed 45/45 on 2026-10-06; source acceptance/review remains. |
+| [#3](https://github.com/ThomasMcCrossin/curlys-order-form/issues/3) — **SUPERSEDED, issue still OPEN** | [Historical missing-phone mission](missions/issue-3-progressive-disclosure-missing-phone.md) | Superseded by the owner's 2026-09-28 email-required decision in [#13](https://github.com/ThomasMcCrossin/curlys-order-form/issues/13) (CLOSED). Do not restore the old phone prompt. | Current `email-progressive.test.mjs` verifies inline missing-email disclosure, no prompt for missing phone alone, and refusal requiring phone. See the [source receipt](receipts/2026-10-06-source-reconciliation.md); issue reconciliation remains. |
 
 ## Technical work — issue status
 
@@ -40,7 +40,7 @@ floor remains a follow-up, and owner acceptance of the deployed behavior remains
 the standing check. The earlier unintended auto-build and baseline restoration
 incident remains recorded as history in report §1.1.
 
-**Issues #2 and #3 only:** Read-only source review on 2026-09-23 found both implementation commits on `main`, while authenticated GitHub readback still showed both issues OPEN. Focused local fixtures now pass, but they are **not** owner acceptance or deployment evidence; do not repeat the implementation or close either issue before review. Keep findings on the existing issues rather than opening duplicate missions.
+**Issues #2 and #3:** The 2026-09-23 source review is historical evidence, not the current phone contract. On 2026-10-06, authenticated readback still showed both issues OPEN, but CLOSED issue #13 and the issue #3 mission explicitly supersede missing-phone disclosure. Current source at `caba4d8` passes the existing offline gate (45/45); this is **not** owner acceptance or deployment evidence. Do not repeat issue #2's implementation or restore issue #3's superseded UI. Keep acceptance/status reconciliation on the existing issues, with no duplicate missions.
 
 Issues #2 and #3 are the only technical missions converted from the legacy
 checklists. Labels created for that conversion are `converted-from-todo`,
