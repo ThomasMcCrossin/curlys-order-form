@@ -51,6 +51,16 @@ expire full request history under that proposal. Preserve a separate retention/
 history design gap; missing/deleted drafts must not be labelled fulfilled or paid,
 and no source draft/Books/receiving record may be deleted by this discovery.
 
+## Independent source contract qualifier
+
+[Request observation lifecycle candidate v1](contracts/request-observation-v1.md)
+qualifies present/confirmed-missing/unavailable outcomes, replay/order conflicts,
+source identity isolation and restoration using synthetic full request/customer
+context. Failed/incomplete observations never begin absence or expiry; no retention
+horizon, copystore purge, live adapter or producer request identity is implemented.
+This advances independent source design while the retention answer and separate
+auth/transport/trigger readiness remain pending.
+
 ## Verified Ops source boundary — 2026-10-07
 
 Inspector: Ops Task `task_a97b569f8e04`, Dispatch `ctx_dc7a8c6a414d`, at its home
