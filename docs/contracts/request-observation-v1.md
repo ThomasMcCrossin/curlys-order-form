@@ -4,8 +4,9 @@ Issue #5, 2026-10-07. This is one source-only qualifier, not an approved endpoin
 producer implementation, credential, persistent store or deployed integration.
 Parent: [target discovery and owner decisions](../integration-curlys-ops.md).
 Owner visibility answer at `218e3c5` requires full captured customer/request
-context. Retention question `orderform5-removed-draft-retention-v1` is unanswered;
-this contract defines **no expiry horizon, purge operation or deletion command**.
+context. The owner challenged retention question
+`orderform5-removed-draft-retention-v1`; no horizon was selected and no repeat
+question is due. This contract defines **no expiry horizon, purge operation or deletion command**.
 
 ## Identity and observation boundary
 
@@ -66,7 +67,7 @@ confirmed absence, repeated absence, restoration, replay/out-of-order conflict
 and source identity isolation. It is not connected to `public/` or `worker/` and
 is not a second runtime implementation or live acceptance gate.
 
-No expiry is implemented while the retention answer is pending. Even a later
+No expiry is implemented; the premature retention question yielded no policy. A later
 retention answer covers only an eventual projection policy: never delete source
 Shopify drafts/orders, original invoices/receipts/payment evidence, Books entries,
 receiving records, financial originals or attachments. No outbound message,

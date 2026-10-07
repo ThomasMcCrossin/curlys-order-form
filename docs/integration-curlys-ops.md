@@ -51,6 +51,33 @@ expire full request history under that proposal. Preserve a separate retention/
 history design gap; missing/deleted drafts must not be labelled fulfilled or paid,
 and no source draft/Books/receiving record may be deleted by this discovery.
 
+### Retention question challenged — no horizon selected
+
+Question `orderform5-removed-draft-retention-v1`; owning Issue raw receipt
+[6036304327](https://github.com/ThomasMcCrossin/curlys-order-form/issues/5#issuecomment-6036304327).
+Raw answer preserved exactly:
+
+```json
+"the fuck are you talking about??? "
+```
+
+Captain disposition: the question asked about a hypothetical future stored copy
+before any request projection/store existed. It was premature, not a necessary
+current implementation decision. The owner challenged the explanation/premise;
+no retention period, indefinite retention, expiry/purge authority or lifecycle
+change was selected. Do not repeat the same question in simpler wording or treat
+the clerk's unaccepted re-ask draft as an answer.
+
+Plain owner reply: I asked about a future copy before we have one. Ops does not
+currently store these requests. Your instruction to include the full customer
+and request details stands. Nothing has been copied, deleted or given an expiry.
+I will leave expiry out of the source design; no retention choice is needed now.
+
+Continue independent source qualification without a production store or purge.
+Revisit retention only if an actual approved storage/history design introduces
+a concrete need, with its real records/use/behavior established first. No repeat
+visibility question and no inferred permission from this challenged answer.
+
 ## Independent source contract qualifier
 
 [Request observation lifecycle candidate v1](contracts/request-observation-v1.md)
@@ -58,8 +85,9 @@ qualifies present/confirmed-missing/unavailable outcomes, replay/order conflicts
 source identity isolation and restoration using synthetic full request/customer
 context. Failed/incomplete observations never begin absence or expiry; no retention
 horizon, copystore purge, live adapter or producer request identity is implemented.
-This advances independent source design while the retention answer and separate
-auth/transport/trigger readiness remain pending.
+This advances independent source design without a retention horizon; the
+challenged retention question is not a pending choice to re-ask. Separate
+auth/transport/trigger readiness remains unqualified.
 
 ## Verified Ops source boundary — 2026-10-07
 
