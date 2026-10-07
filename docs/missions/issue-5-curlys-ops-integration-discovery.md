@@ -27,9 +27,11 @@ operator decisions, and an implementation-ready acceptance packet (if the
 operator approves proceeding).
 
 **Readiness.** Target source evidence is now available from the owning Ops
-captain. Implementation remains blocked on an approved request contract,
-identity/custom-item/lifecycle rules, transport, data/auth/secret boundary and
-bounded target acceptance. No implementation launch is authorized by this issue
+captain. Owner answer `orderform5-request-visibility-v1` (2026-10-07) chooses full
+captured request/customer visibility, including names and data; the raw answer
+is preserved in the discovery document. Do not re-ask or strip that context.
+Implementation remains blocked on exact schema/retention, identity/custom-item/
+lifecycle rules, transport, isolated auth/secret boundary and target acceptance. No implementation launch is authorized by this issue
 or stub. Discovery documentation is committed locally only until source delivery
 can avoid the known branch-push Worker deployment outside this issue's scope.
 

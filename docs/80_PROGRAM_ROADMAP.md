@@ -51,7 +51,7 @@ GitHub issues were present at that conversion.
 
 | Issue | Mission | Scope | Readiness |
 | --- | --- | --- | --- |
-| [#5](https://github.com/ThomasMcCrossin/curlys-order-form/issues/5) | [Curlys Ops integration discovery](missions/issue-5-curlys-ops-integration-discovery.md) | Current owning Ops captain's source-only packet recorded 2026-10-07 in [target-aware discovery](integration-curlys-ops.md); sales, procurement and receiving are separate lifecycles, not an existing request feed. | Source review available; approved contract/data/auth/identity/replay boundaries still required before implementation. No runtime/live connectivity authorized; local documentation delivery held by known branch auto-deploy. |
+| [#5](https://github.com/ThomasMcCrossin/curlys-order-form/issues/5) | [Curlys Ops integration discovery](missions/issue-5-curlys-ops-integration-discovery.md) | Current owning Ops captain's source-only packet recorded 2026-10-07 in [target-aware discovery](integration-curlys-ops.md); sales, procurement and receiving are separate lifecycles, not an existing request feed. | Source review available; owner chose full captured request/customer visibility, including names/contact/custom notes (2026-10-07). Exact schema/retention/auth/identity/replay contract still required before implementation. No runtime/live connectivity authorized; local documentation delivery held by known branch auto-deploy. |
 
 ## Done or evidenced in the legacy record
 

@@ -1,11 +1,55 @@
 # Curlys Order Form ↔ Curlys Ops — target-aware discovery
 
-**Status:** Target source discovery recorded 2026-10-07; contract not approved.
-No runtime wiring, connectivity or behavior changes are included.
+**Status:** Target source discovery recorded 2026-10-07; owner chose full
+request/customer visibility. Runtime identity/auth/transport/replay/lifecycle
+contract remains unapproved. No wiring, connectivity or behavior changes included.
 **Evidence boundary:** Order Form observations below come from this repository.
 Ops observations come from its current owning captain's authenticated source-only
 packet (`relay_05bac4e54861`), not an Order Form target login or live readback.
 Candidate interfaces and the illustrative payload remain unapproved.
+
+## Owner decision — full request/customer visibility
+
+Question `orderform5-request-visibility-v1`, delivered to current Order Form
+Dispatch `ctx_53e200c9fdea` in `relay_3ba9c82bde64`, 2026-10-07.
+Raw answer, preserved without rewriting:
+
+```json
+"I'd want everything why would we keep our customer names and data out of that tf??? "
+```
+
+This is a valid free-text direction beyond the offered choices: the desired
+internal Ops view includes customer names and data, not an anonymous demand
+summary or a stripped request list. Do not re-ask whether names/contact data
+belong in this view. Earlier minimization exclusions below are superseded for
+captured request/customer information; they were proposals, not technical limits.
+
+The business purpose is for authorized staff to identify the customer, understand
+the entire request (including custom items), and follow up from the operational
+view without re-entering or hunting for its details elsewhere.
+
+### Desired data coverage — source design, not a live export
+
+Include all information captured by this request workflow: customer ID/name/email/
+phone; draft reference and source tags/status/timestamps; catalog product/variant
+references, title/SKU when present, quantity and request prices; custom item text,
+quantity and price; request notes and captured note attributes. Preserve provenance,
+nullable fields and separate request/line/DraftOrder/Order namespaces. This does
+not assert that every field is already returned by an existing feed or that a new
+stable request ID exists. The exact field mapping/versioned schema is still source
+contract work. Do not invent payment credentials or import unrelated Shopify
+customer history: neither is captured request information.
+
+Use isolated authenticated staff/service access and clear source ownership;
+customer context must not become a public/browser-embedded unauthenticated feed.
+The answer is business visibility direction, not authority for customer queries,
+production data transfer, new credentials, sends, lifecycle mutation or deployment.
+
+Retention is **not settled**: the earlier 30-day stale-projection expiry was part
+of offered options, not explicitly selected by this raw answer. Do not silently
+expire full request history under that proposal. Preserve a separate retention/
+history design gap; missing/deleted drafts must not be labelled fulfilled or paid,
+and no source draft/Books/receiving record may be deleted by this discovery.
 
 ## Verified Ops source boundary — 2026-10-07
 
@@ -95,8 +139,10 @@ a dedicated versioned handoff/read endpoint, isolated least-privilege auth and
 secret ownership, separate request/line/DraftOrder/Order namespaces, custom and
 partial-item semantics, minimal fields, revisions/observation time, producer
 idempotency, consumer upsert/replay/conflict rules, paging/completeness,
-deletions/tombstones, retention and failure visibility. Exclude contact/payment
-information and free-form notes unless their purpose is explicitly authorized.
+deletions/tombstones, retention and failure visibility. The owner has explicitly
+chosen full captured request/customer context (above); do not strip names/contact/
+custom notes under the superseded minimization proposal. This does not imply
+payment credentials, unrelated history, public access or live transfer authority.
 Ops `docs/runbooks/cross_repo_boundary_contract.md` owns the cross-repo requirements;
 Books inputs stay one-way and accounting truth stays Books-owned.
 
@@ -189,9 +235,10 @@ Subject to target-side discovery and operator approval:
   include Shopify variant ID, SKU, display name, and quantity; a custom item
   should remain explicitly `custom` / `unmatched` until staff resolve its
   identity. Avoid guessing that a title match is the same product.
-- Send only the fields Ops needs. Customer name/contact details, free-form
-  notes, prices, and other personal or commercially sensitive data should not
-  be copied by default; approve each field's purpose and retention first.
+- Include full captured request/customer context per the 2026-10-07 owner
+  answer above, including names/contact details, custom text, notes and request
+  prices. Preserve access controls and provenance. Exact schema, retention and
+  safe transport remain contract work; no live copy occurs in this milestone.
 
 **Transport is undecided.** A pull-based read-only projection may fit a small
 pilot; a push/event feed may be better if Ops needs prompt updates. The current
@@ -250,9 +297,9 @@ Curlys Ops rather than implemented as written.
    target downtime handled? What is the minimum durable state needed?
 6. How should custom items, catalog identity changes, partial purchasing, and
    multiple requests for the same item behave?
-7. Which customer fields (if any) are required in Ops, for what purpose, and
-   with what retention? Can the initial view omit contact data and free-form
-   notes?
+7. **Visibility decided 2026-10-07:** full captured request/customer context,
+   including names/contact and custom notes. Do not ask again about omitting it.
+   Exact field mapping and retention/history remain source design gaps.
 8. Should completion/reconciliation retain a resolved request and actual-order
    reference instead of deleting the draft? This is an operator-held decision,
    not implied by integration work.
