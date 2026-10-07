@@ -51,7 +51,7 @@ GitHub issues were present at that conversion.
 
 | Issue | Mission | Scope | Readiness |
 | --- | --- | --- | --- |
-| [#5](https://github.com/ThomasMcCrossin/curlys-order-form/issues/5) | [Curlys Ops integration discovery](missions/issue-5-curlys-ops-integration-discovery.md) | Review target-side workflow and define an evidence-backed integration boundary; see the [concept scaffold](integration-curlys-ops.md). | Blocked on authorized target-side review and operator decisions; no runtime work authorized. |
+| [#5](https://github.com/ThomasMcCrossin/curlys-order-form/issues/5) | [Curlys Ops integration discovery](missions/issue-5-curlys-ops-integration-discovery.md) | Current owning Ops captain's source-only packet recorded 2026-10-07 in [target-aware discovery](integration-curlys-ops.md); sales, procurement and receiving are separate lifecycles, not an existing request feed. | Source review available; approved contract/data/auth/identity/replay boundaries still required before implementation. No runtime/live connectivity authorized; local documentation delivery held by known branch auto-deploy. |
 
 ## Done or evidenced in the legacy record
 

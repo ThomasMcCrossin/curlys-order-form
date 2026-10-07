@@ -1,10 +1,112 @@
-# Curlys Order Form ↔ Curlys Ops — integration scaffold
+# Curlys Order Form ↔ Curlys Ops — target-aware discovery
 
-**Status:** Concept only. No runtime wiring or behavior changes are included.
-**Evidence boundary:** This scaffold is based on `curlys-order-form` source only. The
-Curlys Ops codebase and its current interfaces have not been reviewed, so the
-proposal below is a set of questions and candidate boundaries—not a description
-of what Ops can already do.
+**Status:** Target source discovery recorded 2026-10-07; contract not approved.
+No runtime wiring, connectivity or behavior changes are included.
+**Evidence boundary:** Order Form observations below come from this repository.
+Ops observations come from its current owning captain's authenticated source-only
+packet (`relay_05bac4e54861`), not an Order Form target login or live readback.
+Candidate interfaces and the illustrative payload remain unapproved.
+
+## Verified Ops source boundary — 2026-10-07
+
+Inspector: Ops Task `task_a97b569f8e04`, Dispatch `ctx_dc7a8c6a414d`, at its home
+`/home/curlyshub/curlys-ops`. Inspected revision
+`52dae3d484fa3579ad85a73449bc93979ce60efa`; cached `origin/main`
+`57ada9ecebba1491bf46c93feaca32afdc72aab0`. Inspector verified the relevant
+paths below unchanged across those revisions. No live deployment, database
+contents, credential values, connectivity or permission was inspected here.
+
+All paths/lines in this section refer to that Ops source, not this repository.
+
+| Existing target surface | Meaning and evidence | Integration consequence |
+| --- | --- | --- |
+| Shopify sales mirror | `src/curlys_ops/models/shopify_orders.py:24–217`; queue `src/curlys_ops/shopify_order_queue.py:58–64` | Already-created sales, not customer requests or Shopify Draft Orders. Shopify owns commercial source state; Ops owns its downstream mirror/evidence. |
+| Supplier PO drafts/submitted orders | `src/curlys_ops/models/intelligence.py:1041–1073`; `src/curlys_ops/procurement/supplier_catalog_ordering_api.py:145–157,3445–3513` | Procurement lifecycle, not an order-request ledger. Draft writes are restricted to reviewable Ops drafts/transport-free dry-run receipts; submitted-order views are read-only. |
+| Receiving intents | `src/curlys_ops/models/receiving_receipt_intent.py:37–63,78,106–166` | Invoice/delivery counts and inventory receipt recovery, not customer intake or request fulfilment proof. |
+
+The inspected models, queue allowlist, supplier domain and API manifest contain
+no dedicated customer-request model, request feed or `draft_orders/*` topic.
+This is a bounded source finding, not proof about every uninspected system.
+Do not invent `GET /requests`, `POST /customer-orders` or a generic intake API.
+
+### Routes and authentication
+
+`cloudflare/invoice-review/src/ops-route-manifest.js:206–232` declares supplier
+catalog draft create/detail routes and submitted-order list/detail routes under
+`/api/operator-review/supplier-catalog/`. These map to origin
+`/operator-review/supplier-catalog/` routes, not a customer request interface.
+Draft editing/reopening is restricted to `draft|review_required|reviewable`
+(`supplier_catalog_ordering_api.py:3366–3394`); submitted detail requires
+`submitted` status. None authorizes an adapter or supplier purchase/send.
+
+Runbook `docs/runbooks/ops_api_origin_systemd.md:15–35` names `ops.curlys.ca`,
+origin `ops-api.curlys.ca`, bind `127.0.0.1:8766`, runtime `/srv/curlys-ops/app`,
+and `scripts/serve_operator_review_employee_hub.py`. These are source references,
+not live availability or permission to connect.
+
+Worker Access verification exists in `cloudflare/invoice-review/src/index.js:
+1091,7818–7862`. `buildUpstreamHeaders` (`:11289–11317`) strips blocked inbound
+headers and supplies correlation/trusted attribution; binding names are
+`OPS_ACCESS_CLIENT_ID`, `OPS_ACCESS_CLIENT_SECRET`, `OPS_API_BEARER_TOKEN`.
+Origin bearer checks (`src/curlys_ops/operator_review_employee_hub_server.py:
+1189–1215`) return 503 when unconfigured and 401 when missing/wrong, using
+constant-time comparison. Actor headers are attribution after authenticated
+transport (`src/curlys_ops/operator_actor.py:5–23`), not credentials.
+
+No existing Order Form service principal, customer-safe request-read scope or
+approved cross-repo secret/auth contract was identified. Do not borrow staff
+credentials or treat actor headers as authentication.
+
+### Identity, custom items and replay
+
+- Sales uniqueness is `(entity, store_key, shopify_order_id)`; line uniqueness is
+  `(order_id, source_line_key)`. Product/variant IDs, SKU/barcode can be null
+  (`models/shopify_orders.py:96–217`). Contact/name/tags/notes columns are not
+  permission to transfer that data.
+- Queue lines retain Shopify line ID when present; otherwise use a synthetic
+  key (`shopify_order_queue.py:1315–1387`). CSV fallback hashes name, line number,
+  title, SKU, quantity and price (`src/curlys_ops/shopify_order_history.py:
+  311–332`). It is an import identity within a sale, not stable custom-request
+  identity; edits/reordering can change it.
+- No request ↔ DraftOrder ↔ final Order mapping, stable custom-request-line ID,
+  partial fulfilment/purchase correlation or completion/deletion policy was
+  found in these surfaces. Any-overlapping-variant matching is not justified
+  by this target source. Keep integer IDs and Shopify GIDs separate.
+- Sales queue topics are `orders/create`, `orders/updated`, `orders/cancelled`,
+  `refunds/create`. Books-owned `hooks.curlys.ca` remains public ingress; Ops
+  is a downstream Queue/R2 consumer (`docs/runbooks/shopify_order_queue_drain.md:
+  18–25`). Do not create a second public ingress.
+- Sales evidence keys include source/entity/store/topic and webhook ID or stable
+  payload hash; duplicate evidence skips normalized mutation within a shared
+  transaction; missing refund base-order dependencies retry without partial
+  evidence (`models/shopify_orders.py:24–43`; queue `:358–363`; queue-drain
+  runbook `:136–156`). This does not prevent duplicate form-created drafts.
+- Supplier `external_reference` uniqueness/idempotency (`supplier_catalog_ordering_api.py:
+  4670–4735`) and receiving nonce/line/lot/movement identities are domain-specific,
+  not reusable Shopify Draft Order intake guarantees. Replenishment draft/on-order
+  signals (`src/curlys_ops/stocky_replenishment_priority.py:885–907`) are aggregate
+  purchasing inputs, not customer request identity or completion events.
+
+### Target-aware acceptance gate
+
+A read-only request view/feed is a possible first slice, not an approved contract.
+Before implementation, both owners must approve direction/source ownership,
+a dedicated versioned handoff/read endpoint, isolated least-privilege auth and
+secret ownership, separate request/line/DraftOrder/Order namespaces, custom and
+partial-item semantics, minimal fields, revisions/observation time, producer
+idempotency, consumer upsert/replay/conflict rules, paging/completeness,
+deletions/tombstones, retention and failure visibility. Exclude contact/payment
+information and free-form notes unless their purpose is explicitly authorized.
+Ops `docs/runbooks/cross_repo_boundary_contract.md` owns the cross-repo requirements;
+Books inputs stay one-way and accounting truth stays Books-owned.
+
+Source/fixture acceptance, once a contract is approved: duplicates and uncertain
+producer retry, edits/replay/version conflicts, custom items and partial items,
+paging completeness, stale/deleted drafts, access denial and target outage.
+Require the existing form to remain usable without Ops. Later auth/connectivity
+and actual target acceptance need their own scoped authority. No fixture or live
+pilot is introduced by this discovery documentation. Draft matching/deletion
+changes remain a separate operator-held behavior decision.
 
 ## Intent
 
