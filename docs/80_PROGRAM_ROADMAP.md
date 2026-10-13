@@ -47,6 +47,24 @@ checklists. Labels created for that conversion are `converted-from-todo`,
 `domain:product-search`, and `domain:customer-experience`. No pre-existing
 GitHub issues were present at that conversion.
 
+## Agent verification — 2026-10-13
+
+[#22](https://github.com/ThomasMcCrossin/curlys-order-form/issues/22) and its
+[mission](missions/issue-22-agent-verification.md) track the fleet #345 request
+for a scripted verification path. The
+[project-local skill](../.agents/skills/verify-curlys-order-form/SKILL.md) and
+[feature map](../.agents/skills/verify-curlys-order-form/features/README.md)
+launch an isolated Node 22+ Worker adapter and drive the real pages with
+Playwright. Shopify/Resend calls terminate at synthetic outbound adapters;
+production services and credentials are not used. The pages still name the
+production Worker, so only the guarded browser driver is safe for this mode.
+
+This local evidence does not accept a Cloudflare deployment or live external
+integration. Exact proof and open choices belong to #22 and its PR. Password
+entry, inventory/dashboard mutation workflows, Stocky, scheduled jobs and live
+sends remain unverified. Keep documentation-only work separate from harness
+code changes; no product-code change is required for this launch path.
+
 ## Discovery scaffold — not ready for implementation
 
 | Issue | Mission | Scope | Readiness |
