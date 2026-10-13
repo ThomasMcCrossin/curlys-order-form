@@ -1,0 +1,7 @@
+{
+  "name": "verify-curlys-order-form",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "devDependencies": { "playwright": "1.57.0" }
+}
