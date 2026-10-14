@@ -49,6 +49,19 @@ A complete order management system for Shopify with customer/product search, sta
 3. Set up Cloudflare Worker (backend API)
 4. Configure environment variables in Worker
 
+## Agent verification
+
+Use [verify-curlys-order-form](.agents/skills/verify-curlys-order-form/SKILL.md)
+for isolated browser/Worker verification and the maintained
+[feature map](.agents/skills/verify-curlys-order-form/features/README.md) for
+coverage. It requires Node 22+, pins Playwright, and runs real frontend/Worker
+code against synthetic Shopify and Resend adapters. No deployment or production
+credentials are needed. Evidence survives cleanup under
+`~/.local/state/verify/curlys-order-form/`.
+
+Do not open a locally served page in an ordinary browser for verification:
+its hard-coded Worker URL still points to production. Use the guarded driver.
+
 ## URLs
 
 - **Order Form**: `https://your-pages.pages.dev/` (or custom domain)

@@ -17,6 +17,10 @@ Presentation fixes:
 - [Issue #10 — viewport wrapping and overflow fixes](issue-10-viewport-ui-fixes.md)
 - [Issue #12 — customer email design and one back-in-stock message](issue-12-customer-email-design.md)
 
+Agent tooling:
+
+- [Issue #22 — isolated agent verification](issue-22-agent-verification.md)
+
 Discovery scaffold, not ready for implementation:
 
 - [Issue #5 — Curlys Ops integration discovery](issue-5-curlys-ops-integration-discovery.md)
