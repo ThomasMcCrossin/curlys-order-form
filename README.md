@@ -65,7 +65,7 @@ its hard-coded Worker URL still points to production. Use the guarded driver.
 ## URLs
 
 - **Order Form**: `https://your-pages.pages.dev/` (or custom domain)
-- **Dashboard**: `https://your-pages.pages.dev/dashboard.html` (password: `curlys2025`)
+- **Dashboard**: `https://your-pages.pages.dev/dashboard.html` (staff PIN, checked by the Worker; see docs/missions/issue-24-pin-server-check.md)
 - **Worker API**: `https://curlys-order-form-worker.thomas-mccrossin.workers.dev`
 
 ## Configuration
