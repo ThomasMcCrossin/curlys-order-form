@@ -32,6 +32,7 @@ async function submit(customer, customers = {}, { failEmailPut = false, searchRe
   try {
     const res = await worker.fetch(new Request('https://w.test/order-request', {
       method: 'POST',
+      headers: { 'CF-Connecting-IP': '142.177.77.123' },
       body: JSON.stringify({ customer, items: [{ customTitle: 'Thing', customPrice: '5', quantity: 1 }] })
     }), env);
     return { status: res.status, json: await res.json(), calls };

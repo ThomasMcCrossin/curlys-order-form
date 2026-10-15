@@ -52,3 +52,26 @@ test('the work IP verifies without a token', async () => {
   const res = await worker.fetch(new Request('https://w.test/api/auth/verify', { headers: { 'CF-Connecting-IP': '142.177.77.123' } }), env);
   assert.deepEqual(await res.json(), { ok: true });
 });
+
+const staffCall = (path, headers = {}, method = 'GET') =>
+  worker.fetch(new Request(`https://w.test${path}`, { method, headers: { ...ip, ...headers } }), env);
+
+test('staff routes refuse requests without the work IP or a session token', async () => {
+  for (const [path, method] of [['/api/customers/search?q=a'], ['/api/products/search?q=a'], ['/api/dashboard/orders'],
+    ['/api/dashboard/supplier-queue'], ['/api/dashboard/orders/1/email', 'POST'], ['/order-request', 'POST']]) {
+    assert.equal((await staffCall(path, {}, method)).status, 401, path);
+  }
+});
+
+test('the raw PIN token no longer opens staff routes; a session token does', async () => {
+  assert.equal((await staffCall('/api/products/0/inventory-zero', { 'x-order-form-auth': btoa('1234') }, 'POST')).status, 401);
+  const { token } = await (await login('1234')).json();
+  const res = await staffCall('/api/products/0/inventory-zero', { 'x-order-form-auth': token }, 'POST');
+  assert.deepEqual([res.status, (await res.json()).error], [400, 'Invalid variant id']);
+});
+
+test('health, IP check and login stay public', async () => {
+  assert.equal((await staffCall('/health')).status, 200);
+  assert.equal((await staffCall('/api/auth/check-ip')).status, 200);
+  assert.equal((await login('0000')).status, 401);
+});

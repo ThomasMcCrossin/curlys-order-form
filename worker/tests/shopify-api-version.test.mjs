@@ -22,7 +22,8 @@ async function run(request, env, respond) {
   }
 }
 
-const customerSearch = () => new Request('https://w.test/api/customers/search?q=nora');
+const workIP = { 'CF-Connecting-IP': '142.177.77.123' };
+const customerSearch = () => new Request('https://w.test/api/customers/search?q=nora', { headers: workIP });
 
 test('every Shopify call defaults to Admin API 2026-07', async () => {
   const { calls } = await run(customerSearch(), baseEnv, () => ({ customers: [] }));
@@ -41,7 +42,7 @@ test('product search reads thumbnails from featuredMedia', async () => {
     featuredMedia: { preview: { image: { url: 'https://cdn.test/whey.png' } } },
     variants: { edges: [{ node: { legacyResourceId: '11', barcode: '', sku: '', title: 'Default', displayName: 'Whey', price: '1', inventoryQuantity: 1 } }] }
   };
-  const { json, calls } = await run(new Request('https://w.test/api/products/search?q=whey'), baseEnv, c => {
+  const { json, calls } = await run(new Request('https://w.test/api/products/search?q=whey', { headers: workIP }), baseEnv, c => {
     const q = c.body?.query || '';
     assert.doesNotMatch(q, /featuredImage/);
     return { data: q.includes('productVariants') ? { productVariants: { edges: [] } } : { products: { edges: [{ node: product }] } } };
@@ -60,7 +61,7 @@ test('inventory zero uses changeFromQuantity with an idempotency key', async () 
       }
     }
   };
-  const request = new Request('https://w.test/api/products/11/inventory-zero', { method: 'POST', headers: { 'x-order-form-auth': 'staff' } });
+  const request = new Request('https://w.test/api/products/11/inventory-zero', { method: 'POST', headers: workIP });
   const { res, calls } = await run(request, baseEnv, c => (/inventorySetQuantities/.test(c.body.query)
     ? { data: { inventorySetQuantities: { inventoryAdjustmentGroup: { reason: 'correction', changes: [] }, userErrors: [] } } }
     : { data: snapshot }));
