@@ -47,7 +47,7 @@ async function search(q, fixtures = {}) {
   };
   try {
     const response = await worker.fetch(
-      new Request(`https://fixture.invalid/api/products/search?q=${encodeURIComponent(q)}`), env);
+      new Request(`https://fixture.invalid/api/products/search?q=${encodeURIComponent(q)}`, { headers: { 'CF-Connecting-IP': '142.177.77.123' } }), env);
     assert.equal(response.status, 200);
     return { results: (await response.json()).products, calls };
   } finally {

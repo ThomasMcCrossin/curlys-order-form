@@ -54,6 +54,11 @@ export default {
       return json({ ok: await hasStaffActionAccess(request, env) }, 200);
     }
 
+    // Every staff route needs the work IP or a session token from /api/auth/login.
+    if (isStaffRoute(url.pathname) && !(await hasStaffActionAccess(request, env))) {
+      return json({ ok: false, error: "Unauthorized" }, 401);
+    }
+
     // === NEW: CUSTOMER SEARCH API ===
     if (url.pathname === "/api/customers/search" && request.method === "GET") {
       try {
@@ -1028,13 +1033,14 @@ async function hasStaffActionAccess(request, env) {
   if (isWhitelistedIp(clientIP)) return true;
 
   const provided = String(request.headers.get("x-order-form-auth") || "").trim();
-  if (!provided) return false;
-  if (await verifySession(env, provided)) return true;
+  return provided ? verifySession(env, provided) : false;
+}
 
-  // Legacy: the raw action token (base64 of the PIN). Removed once the pages send session tokens.
-  const expected = String(env.ORDER_FORM_ACTION_TOKEN || "").trim();
-  if (!expected) return false;
-  return timingSafeEqualStrings(provided, expected);
+function isStaffRoute(pathname) {
+  return pathname === "/order-request"
+    || pathname.startsWith("/api/customers/")
+    || pathname.startsWith("/api/products/")
+    || pathname.startsWith("/api/dashboard/");
 }
 
 async function sessionSignature(env, expiresAt) {

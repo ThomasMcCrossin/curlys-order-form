@@ -188,7 +188,7 @@ test('worker passes subject, html and text to Resend with the same recipient and
   try {
     const env = { SHOPIFY_STORE: 'fixture.invalid', SHOPIFY_ADMIN_TOKEN: 'fixture-only', RESEND_API_KEY: 'fixture-only', FROM_EMAIL: 'from@example.test', STAFF_EMAIL: 'staff@example.test' };
     const res = await worker.fetch(new Request('https://w.invalid/api/dashboard/orders/77/email', {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: '<img src=x onerror=alert(1)>' })
+      method: 'POST', headers: { 'content-type': 'application/json', 'CF-Connecting-IP': '142.177.77.123' }, body: JSON.stringify({ message: '<img src=x onerror=alert(1)>' })
     }), env);
     assert.equal(res.status, 200);
     assert.equal(sent.length, 1);
