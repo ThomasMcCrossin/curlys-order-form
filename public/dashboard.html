@@ -2451,7 +2451,6 @@
 
   <script>
     const WORKER_URL = 'https://curlys-order-form-worker.thomas-mccrossin.workers.dev';
-    const DASHBOARD_PASSWORD = '6968';
     const REMEMBER_TOKEN_KEY = 'curlys_dashboard_auth';
     const REMEMBER_TOKEN_EXPIRY_DAYS = 30;
     const DENSITY_STORAGE_KEY = 'curlys_dashboard_density';
@@ -2478,6 +2477,40 @@
     }
 
     // ========== AUTHENTICATION ==========
+    // The PIN is checked by the Worker (/api/auth/login), never in this page. A successful
+    // login returns a 30-day session token that every Worker call sends as x-order-form-auth.
+    let sessionToken = null;
+
+    function workerFetch(url, options = {}) {
+      const headers = { ...(options.headers || {}) };
+      if (sessionToken) headers['x-order-form-auth'] = sessionToken;
+      return fetch(url, { ...options, headers });
+    }
+
+    async function loginWithPin(pin) {
+      try {
+        const response = await fetch(`${WORKER_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin })
+        });
+        const data = await response.json().catch(() => ({}));
+        return response.ok && data.token ? data : { error: data.error };
+      } catch (error) {
+        return { error: 'Could not reach the server. Check the connection and try again.' };
+      }
+    }
+
+    function saveSession(data, rememberDevice) {
+      sessionToken = data.token;
+      if (rememberDevice) {
+        localStorage.setItem(REMEMBER_TOKEN_KEY, JSON.stringify({
+          token: data.token,
+          expiry: new Date(data.expiresAt).toISOString()
+        }));
+      }
+    }
+
     async function checkAuth() {
       try {
         const ipResponse = await fetch(`${WORKER_URL}/api/auth/check-ip`);
@@ -2493,18 +2526,31 @@
         if (savedToken) {
           try {
             const tokenData = JSON.parse(savedToken);
-            const expiryDate = new Date(tokenData.expiry);
-
-            if (expiryDate > new Date() && tokenData.hash === btoa(DASHBOARD_PASSWORD)) {
-              console.log('Access granted: Remembered device');
-              showDashboard();
-              return;
-            } else {
-              localStorage.removeItem(REMEMBER_TOKEN_KEY);
+            if (new Date(tokenData.expiry) > new Date()) {
+              if (tokenData.token) {
+                sessionToken = tokenData.token;
+                const verify = await (await workerFetch(`${WORKER_URL}/api/auth/verify`)).json();
+                if (verify.ok) {
+                  console.log('Access granted: Remembered device');
+                  showDashboard();
+                  return;
+                }
+              } else if (tokenData.hash) {
+                // Remembered before the PIN moved to the Worker: swap it for a session token once.
+                const data = await loginWithPin(atob(tokenData.hash));
+                if (data.token) {
+                  saveSession(data, true);
+                  console.log('Access granted: Remembered device');
+                  showDashboard();
+                  return;
+                }
+              }
             }
           } catch (e) {
-            localStorage.removeItem(REMEMBER_TOKEN_KEY);
+            // Fall through to the login screen.
           }
+          sessionToken = null;
+          localStorage.removeItem(REMEMBER_TOKEN_KEY);
         }
 
         document.getElementById('loginScreen').style.display = 'flex';
@@ -2514,28 +2560,19 @@
       }
     }
 
-    function login(event) {
+    async function login(event) {
       event.preventDefault();
+
       const password = document.getElementById('passwordInput').value;
       const rememberDevice = document.getElementById('rememberDevice').checked;
       const errorDiv = document.getElementById('loginError');
 
-      if (password === DASHBOARD_PASSWORD) {
-        if (rememberDevice) {
-          const expiry = new Date();
-          expiry.setDate(expiry.getDate() + REMEMBER_TOKEN_EXPIRY_DAYS);
-
-          const tokenData = {
-            hash: btoa(password),
-            expiry: expiry.toISOString()
-          };
-
-          localStorage.setItem(REMEMBER_TOKEN_KEY, JSON.stringify(tokenData));
-        }
-
+      const data = await loginWithPin(password);
+      if (data.token) {
+        saveSession(data, rememberDevice);
         showDashboard();
       } else {
-        errorDiv.textContent = 'Incorrect password. Please try again.';
+        errorDiv.textContent = data.error || 'Incorrect password. Please try again.';
         errorDiv.style.display = 'block';
         document.getElementById('passwordInput').value = '';
         document.getElementById('passwordInput').focus();
@@ -2622,7 +2659,7 @@
           button.textContent = '⏳ Loading...';
         }
 
-        const response = await fetch(`${WORKER_URL}/api/dashboard/supplier-queue`);
+        const response = await workerFetch(`${WORKER_URL}/api/dashboard/supplier-queue`);
         const result = await response.json().catch(() => ({
           ok: false,
           error: `Unexpected response (${response.status})`
@@ -2784,7 +2821,7 @@
           button.textContent = '⏳ Scanning...';
         }
 
-        const response = await fetch(`${WORKER_URL}/api/dashboard/reconcile-purchases`, {
+        const response = await workerFetch(`${WORKER_URL}/api/dashboard/reconcile-purchases`, {
           method: 'POST'
         });
         const result = await response.json().catch(() => ({
@@ -2837,7 +2874,7 @@
       container.innerHTML = '';
 
       try {
-        const response = await fetch(`${WORKER_URL}/api/dashboard/orders`);
+        const response = await workerFetch(`${WORKER_URL}/api/dashboard/orders`);
         const data = await response.json();
 
         orders = data.orders || [];
@@ -3385,7 +3422,7 @@
       showToast(`Marking ${selectedOrderIds.size} orders as ready...`, 'info');
 
       const promises = Array.from(selectedOrderIds).map(orderId =>
-        fetch(`${WORKER_URL}/api/dashboard/orders/${orderId}/ready`, { method: 'POST' })
+        workerFetch(`${WORKER_URL}/api/dashboard/orders/${orderId}/ready`, { method: 'POST' })
       );
 
       try {
@@ -3433,7 +3470,7 @@
       showToast(`Sending ${emailableOrders.length} email(s)...`, 'info');
 
       const promises = emailableOrders.map(order =>
-        fetch(`${WORKER_URL}/api/dashboard/orders/${order.id}/email`, {
+        workerFetch(`${WORKER_URL}/api/dashboard/orders/${order.id}/email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: message || undefined })
@@ -3474,7 +3511,7 @@
       showToast(`Completing ${selectedOrders.length} order(s)...`, 'info');
 
       const promises = selectedOrders.map(order =>
-        fetch(`${WORKER_URL}/api/dashboard/orders/${order.id}/complete`, { method: 'POST' })
+        workerFetch(`${WORKER_URL}/api/dashboard/orders/${order.id}/complete`, { method: 'POST' })
       );
 
       try {
@@ -3507,7 +3544,7 @@
       if (!confirmed) return;
 
       try {
-        const response = await fetch(`${WORKER_URL}/api/dashboard/orders/${orderId}/ready`, {
+        const response = await workerFetch(`${WORKER_URL}/api/dashboard/orders/${orderId}/ready`, {
           method: 'POST'
         });
 
@@ -3534,7 +3571,7 @@
       if (!confirmed) return;
 
       try {
-        const response = await fetch(`${WORKER_URL}/api/dashboard/orders/${orderId}/complete`, {
+        const response = await workerFetch(`${WORKER_URL}/api/dashboard/orders/${orderId}/complete`, {
           method: 'POST'
         });
         const result = await response.json().catch(() => ({}));
@@ -3568,7 +3605,7 @@
       if (message === null) return;
 
       try {
-        const response = await fetch(`${WORKER_URL}/api/dashboard/orders/${orderId}/email`, {
+        const response = await workerFetch(`${WORKER_URL}/api/dashboard/orders/${orderId}/email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: message || undefined })
@@ -3586,7 +3623,7 @@
 
     async function updateReminderSettings(orderId, payload, successMessage) {
       try {
-        const response = await fetch(`${WORKER_URL}/api/dashboard/orders/${orderId}/reminder`, {
+        const response = await workerFetch(`${WORKER_URL}/api/dashboard/orders/${orderId}/reminder`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
