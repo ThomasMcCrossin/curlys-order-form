@@ -11,6 +11,7 @@ const STOCKY_LOOKUP_CACHE = {
   expiresAt: 0
 };
 const STOCKY_CACHE_TTL_MS = 5 * 60 * 1000;
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 export default {
   async fetch(request, env) {
@@ -27,6 +28,30 @@ export default {
       const clientIP = request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "unknown";
       const isWhitelisted = isWhitelistedIp(clientIP);
       return json({ whitelisted: isWhitelisted, ip: clientIP }, 200);
+    }
+
+    // === STAFF LOGIN ===
+    // The PIN is checked here, never in the page. Success returns a signed 30-day session
+    // token that the pages send as x-order-form-auth. Every attempt counts against a per-IP limit.
+    if (url.pathname === "/api/auth/login" && request.method === "POST") {
+      const clientIP = request.headers.get("CF-Connecting-IP") || "unknown";
+      if (env.LOGIN_LIMITER) {
+        const { success } = await env.LOGIN_LIMITER.limit({ key: `login:${clientIP}` });
+        if (!success) return json({ ok: false, error: "Too many attempts. Wait a minute and try again." }, 429);
+      }
+      let pin = "";
+      try { pin = String((await request.json())?.pin || "").trim(); } catch (_) {}
+      const expected = String(env.ORDER_FORM_ACTION_TOKEN || "").trim();
+      if (!pin || !expected || !env.ORDER_FORM_SESSION_SECRET || !(await timingSafeEqualStrings(btoa(pin), expected))) {
+        return json({ ok: false, error: "Incorrect password" }, 401);
+      }
+      const expiresAt = Date.now() + SESSION_TTL_MS;
+      return json({ ok: true, token: await signSession(env, expiresAt), expiresAt }, 200);
+    }
+
+    // Lets a page check a saved session token (or the work IP) without loading data.
+    if (url.pathname === "/api/auth/verify" && request.method === "GET") {
+      return json({ ok: await hasStaffActionAccess(request, env) }, 200);
     }
 
     // === NEW: CUSTOMER SEARCH API ===
@@ -1002,11 +1027,33 @@ async function hasStaffActionAccess(request, env) {
   const clientIP = request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "unknown";
   if (isWhitelistedIp(clientIP)) return true;
 
-  const expected = String(env.ORDER_FORM_ACTION_TOKEN || "").trim();
   const provided = String(request.headers.get("x-order-form-auth") || "").trim();
-  if (!expected || !provided) return false;
+  if (!provided) return false;
+  if (await verifySession(env, provided)) return true;
 
+  // Legacy: the raw action token (base64 of the PIN). Removed once the pages send session tokens.
+  const expected = String(env.ORDER_FORM_ACTION_TOKEN || "").trim();
+  if (!expected) return false;
   return timingSafeEqualStrings(provided, expected);
+}
+
+async function sessionSignature(env, expiresAt) {
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(env.ORDER_FORM_SESSION_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+  );
+  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`session:${expiresAt}`));
+  return btoa(String.fromCharCode(...new Uint8Array(mac))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function signSession(env, expiresAt) {
+  return `v1.${expiresAt}.${await sessionSignature(env, expiresAt)}`;
+}
+
+async function verifySession(env, token) {
+  if (!env.ORDER_FORM_SESSION_SECRET) return false;
+  const m = /^v1\.(\d+)\.([A-Za-z0-9_-]+)$/.exec(token);
+  if (!m || Number(m[1]) <= Date.now()) return false;
+  return timingSafeEqualStrings(m[2], await sessionSignature(env, Number(m[1])));
 }
 
 async function timingSafeEqualStrings(a, b) {

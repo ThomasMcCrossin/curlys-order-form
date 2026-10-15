@@ -20,6 +20,7 @@ Presentation fixes:
 Agent tooling:
 
 - [Issue #22 — isolated agent verification](issue-22-agent-verification.md)
+- [Issue #24 — staff PIN checked by the Worker](issue-24-pin-server-check.md)
 
 Discovery scaffold, not ready for implementation:
 
