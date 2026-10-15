@@ -921,7 +921,6 @@
   <script>
     // Configuration - UPDATE THIS with your Cloudflare Worker URL
     const WORKER_URL = 'https://curlys-order-form-worker.thomas-mccrossin.workers.dev';
-    const ORDER_FORM_PASSWORD = '6968';
     const REMEMBER_TOKEN_KEY = 'curlys_order_form_auth';
     const REMEMBER_TOKEN_EXPIRY_DAYS = 30;
 
@@ -934,9 +933,42 @@
     let inventoryWarningTimeout = null;
 
     // === AUTHENTICATION ===
+    // The PIN is checked by the Worker (/api/auth/login), never in this page. A successful
+    // login returns a 30-day session token that every Worker call sends as x-order-form-auth.
+    let sessionToken = null;
+
+    function workerFetch(url, options = {}) {
+      const headers = { ...(options.headers || {}) };
+      if (sessionToken) headers['x-order-form-auth'] = sessionToken;
+      return fetch(url, { ...options, headers });
+    }
+
+    async function loginWithPin(pin) {
+      try {
+        const response = await fetch(`${WORKER_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin })
+        });
+        const data = await response.json().catch(() => ({}));
+        return response.ok && data.token ? data : { error: data.error };
+      } catch (error) {
+        return { error: 'Could not reach the server. Check the connection and try again.' };
+      }
+    }
+
+    function saveSession(data, rememberDevice) {
+      sessionToken = data.token;
+      if (rememberDevice) {
+        localStorage.setItem(REMEMBER_TOKEN_KEY, JSON.stringify({
+          token: data.token,
+          expiry: new Date(data.expiresAt).toISOString()
+        }));
+      }
+    }
+
     async function checkAuth() {
       try {
-        // Check IP whitelist first
         const ipResponse = await fetch(`${WORKER_URL}/api/auth/check-ip`);
         const ipData = await ipResponse.json();
 
@@ -946,59 +978,57 @@
           return;
         }
 
-        // Check for remember device token
         const savedToken = localStorage.getItem(REMEMBER_TOKEN_KEY);
         if (savedToken) {
           try {
             const tokenData = JSON.parse(savedToken);
-            const expiryDate = new Date(tokenData.expiry);
-
-            if (expiryDate > new Date() && tokenData.hash === btoa(ORDER_FORM_PASSWORD)) {
-              console.log('Access granted: Remembered device');
-              showMainContent();
-              return;
-            } else {
-              // Token expired or invalid
-              localStorage.removeItem(REMEMBER_TOKEN_KEY);
+            if (new Date(tokenData.expiry) > new Date()) {
+              if (tokenData.token) {
+                sessionToken = tokenData.token;
+                const verify = await (await workerFetch(`${WORKER_URL}/api/auth/verify`)).json();
+                if (verify.ok) {
+                  console.log('Access granted: Remembered device');
+                  showMainContent();
+                  return;
+                }
+              } else if (tokenData.hash) {
+                // Remembered before the PIN moved to the Worker: swap it for a session token once.
+                const data = await loginWithPin(atob(tokenData.hash));
+                if (data.token) {
+                  saveSession(data, true);
+                  console.log('Access granted: Remembered device');
+                  showMainContent();
+                  return;
+                }
+              }
             }
           } catch (e) {
-            localStorage.removeItem(REMEMBER_TOKEN_KEY);
+            // Fall through to the login screen.
           }
+          sessionToken = null;
+          localStorage.removeItem(REMEMBER_TOKEN_KEY);
         }
 
-        // Show login screen
         document.getElementById('loginOverlay').style.display = 'flex';
       } catch (error) {
         console.error('Auth check failed:', error);
-        // On error, show login screen to be safe
         document.getElementById('loginOverlay').style.display = 'flex';
       }
     }
 
-    function handleLogin(event) {
+    async function handleLogin(event) {
       event.preventDefault();
 
       const password = document.getElementById('loginPassword').value;
       const rememberDevice = document.getElementById('rememberDevice').checked;
       const errorDiv = document.getElementById('loginError');
 
-      if (password === ORDER_FORM_PASSWORD) {
-        // Save remember token if requested
-        if (rememberDevice) {
-          const expiry = new Date();
-          expiry.setDate(expiry.getDate() + REMEMBER_TOKEN_EXPIRY_DAYS);
-
-          const tokenData = {
-            hash: btoa(password),
-            expiry: expiry.toISOString()
-          };
-
-          localStorage.setItem(REMEMBER_TOKEN_KEY, JSON.stringify(tokenData));
-        }
-
+      const data = await loginWithPin(password);
+      if (data.token) {
+        saveSession(data, rememberDevice);
         showMainContent();
       } else {
-        errorDiv.textContent = 'Incorrect password';
+        errorDiv.textContent = data.error || 'Incorrect password';
         errorDiv.style.display = 'block';
         document.getElementById('loginPassword').value = '';
         document.getElementById('loginPassword').focus();
@@ -1051,7 +1081,7 @@
       results.classList.add('show');
 
       try {
-        const response = await fetch(`${WORKER_URL}/api/customers/search?q=${encodeURIComponent(query)}`);
+        const response = await workerFetch(`${WORKER_URL}/api/customers/search?q=${encodeURIComponent(query)}`);
         if (!response.ok) throw new Error('Failed to search customers');
 
         const data = await response.json();
@@ -1215,7 +1245,7 @@
       results.classList.add('show');
 
       try {
-        const response = await fetch(`${WORKER_URL}/api/products/search?q=${encodeURIComponent(query)}`);
+        const response = await workerFetch(`${WORKER_URL}/api/products/search?q=${encodeURIComponent(query)}`);
         if (!response.ok) throw new Error('Failed to search products');
 
         const data = await response.json();
@@ -1450,17 +1480,7 @@
     }
 
     function getOrderFormAuthToken() {
-      const savedToken = localStorage.getItem(REMEMBER_TOKEN_KEY);
-      if (savedToken) {
-        try {
-          const tokenData = JSON.parse(savedToken);
-          const expiryDate = new Date(tokenData.expiry);
-          if (expiryDate > new Date() && tokenData.hash) return tokenData.hash;
-        } catch (e) {
-          localStorage.removeItem(REMEMBER_TOKEN_KEY);
-        }
-      }
-      return btoa(ORDER_FORM_PASSWORD);
+      return sessionToken || '';
     }
 
     async function confirmZeroInventory(index) {
@@ -1474,7 +1494,7 @@
       renderLineItems();
 
       try {
-        const response = await fetch(`${WORKER_URL}/api/products/${encodeURIComponent(item.variantId)}/inventory-zero`, {
+        const response = await workerFetch(`${WORKER_URL}/api/products/${encodeURIComponent(item.variantId)}/inventory-zero`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1603,7 +1623,7 @@
       btn.innerHTML = '<span class="spinner"></span> Creating Draft Order...';
 
       try {
-        const response = await fetch(`${WORKER_URL}/order-request`, {
+        const response = await workerFetch(`${WORKER_URL}/order-request`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
