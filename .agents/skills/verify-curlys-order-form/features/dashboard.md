@@ -54,7 +54,7 @@ Run `node "$S/drive.mjs" "$RUN" dashboard --headless`.
   an immediate capture can show a nearly transparent card.
 - Missing snoozed/muted/Stocky seed data blocks those journeys. This recipe does
   not claim an empty tab proves reminders or supplier purchasing.
-- Items Arrived, Completed/Delete, Email Customer, reminders, bulk mutations,
-  Supplier Queue/CSV, Scan Purchases, Shopify links, print and keyboard shortcuts
-  remain unmapped/unverified. Their API calls fail closed in this harness; never
+- Items Arrived, Completed/Delete, Add/Edit Note, Email Customer, reminders, bulk
+  mutations, Supplier Queue/CSV, Scan Purchases, Shopify links, print and keyboard
+  shortcuts remain unmapped/unverified. Their API calls fail closed in this harness; never
   point the page at production to make them pass.

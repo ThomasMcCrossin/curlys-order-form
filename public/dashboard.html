@@ -1560,6 +1560,19 @@
       line-height: 1.45;
     }
 
+    .note-edit {
+      margin-left: 8px;
+      padding: 2px 10px;
+      font-size: 12px;
+      background: transparent;
+      color: #6e4f1a;
+      border: 1px solid #e1c391;
+    }
+
+    .note-edit:hover {
+      background: #f7e6c8;
+    }
+
     .actions {
       gap: 10px;
       padding-top: 14px;
@@ -3187,6 +3200,7 @@
             ${order.note ? `
               <div class="inline-note">
                 <strong>📝 Note:</strong> ${escapeHtml(order.note)}
+                <button class="btn note-edit" onclick="editOrderNote(${order.id})">Edit</button>
               </div>
             ` : ''}
 
@@ -3204,6 +3218,9 @@
                 <div class="secondary-actions-panel">
                   <button class="btn btn-warning" onclick="emailCustomer(${order.id})" ${emailDisabled}>
                     ✉️ Email Customer
+                  </button>
+                  <button class="btn btn-secondary" onclick="editOrderNote(${order.id})">
+                    📝 ${order.note ? 'Edit Note' : 'Add Note'}
                   </button>
                   <button class="btn btn-secondary" onclick="viewInShopify(${order.id})">
                     🛍️ View in Shopify
@@ -3535,6 +3552,39 @@
     }
 
     // ========== INDIVIDUAL ORDER ACTIONS ==========
+    async function editOrderNote(orderId) {
+      const order = orders.find(o => o.id === orderId);
+      if (!order) return;
+
+      const note = await showPromptModal(
+        order.note ? 'Edit Note' : 'Add Note',
+        'Staff note for this order request. It is saved to the Shopify draft order and shown on this card.',
+        order.note || '',
+        { submitLabel: 'Save Note', placeholder: 'e.g. Held for Bubba' }
+      );
+
+      if (note === null) return;
+
+      try {
+        const response = await workerFetch(`${WORKER_URL}/api/dashboard/orders/${orderId}/note`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ note: note.trim() })
+        });
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok || !result.ok) {
+          throw new Error(result.error || `Request failed (${response.status})`);
+        }
+
+        order.note = result.note || '';
+        renderOrders();
+        showToast(order.note ? 'Note saved' : 'Note cleared', 'success');
+      } catch (error) {
+        showToast(`Error saving note: ${error.message}`, 'error');
+      }
+    }
+
     async function markReady(orderId) {
       const confirmed = await showConfirmModal(
         'Mark Items Arrived',
@@ -3735,7 +3785,9 @@
       });
     }
 
-    function showPromptModal(title, message, defaultValue = '') {
+    function showPromptModal(title, message, defaultValue = '', options = {}) {
+      const submitLabel = options.submitLabel || 'Send';
+      const placeholder = options.placeholder || 'Enter your message here...';
       return new Promise((resolve) => {
         const overlay = document.createElement('div');
         overlay.className = 'modal-overlay';
@@ -3745,12 +3797,12 @@
             <div class="modal-body">
               <p style="margin-bottom: 16px;">${message}</p>
               <div class="form-group">
-                <textarea id="promptInput" placeholder="Enter your message here...">${defaultValue}</textarea>
+                <textarea id="promptInput" placeholder="${escapeHtml(placeholder)}">${escapeHtml(defaultValue)}</textarea>
               </div>
             </div>
             <div class="modal-actions">
               <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-              <button class="btn btn-primary" id="submitBtn">Send</button>
+              <button class="btn btn-primary" id="submitBtn">${escapeHtml(submitLabel)}</button>
             </div>
           </div>
         `;

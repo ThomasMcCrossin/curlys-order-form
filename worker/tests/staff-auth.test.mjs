@@ -58,7 +58,7 @@ const staffCall = (path, headers = {}, method = 'GET') =>
 
 test('staff routes refuse requests without the work IP or a session token', async () => {
   for (const [path, method] of [['/api/customers/search?q=a'], ['/api/products/search?q=a'], ['/api/dashboard/orders'],
-    ['/api/dashboard/supplier-queue'], ['/api/dashboard/orders/1/email', 'POST'], ['/order-request', 'POST']]) {
+    ['/api/dashboard/supplier-queue'], ['/api/dashboard/orders/1/email', 'POST'], ['/api/dashboard/orders/1/note', 'POST'], ['/order-request', 'POST']]) {
     assert.equal((await staffCall(path, {}, method)).status, 401, path);
   }
 });

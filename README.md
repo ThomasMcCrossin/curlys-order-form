@@ -32,6 +32,7 @@ A complete order management system for Shopify with customer/product search, sta
 - Filter by custom items or status
 - Search by customer/order
 - Mark items as arrived
+- Add or edit a staff note on an existing request
 - Email customers
 - Direct Shopify links
 
