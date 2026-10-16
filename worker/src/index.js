@@ -12,6 +12,8 @@ const STOCKY_LOOKUP_CACHE = {
 };
 const STOCKY_CACHE_TTL_MS = 5 * 60 * 1000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+// Dashboard notes are short staff annotations, not customer messages.
+const MAX_ORDER_NOTE_LENGTH = 2000;
 
 export default {
   async fetch(request, env) {
@@ -593,6 +595,48 @@ export default {
         }, 200);
       } catch (e) {
         console.error("Reminder update error:", e);
+        return json({ ok: false, error: e.message }, 500);
+      }
+    }
+
+    if (url.pathname.match(/^\/api\/dashboard\/orders\/(\d+)\/note$/) && request.method === "POST") {
+      try {
+        const match = url.pathname.match(/^\/api\/dashboard\/orders\/(\d+)\/note$/);
+        const draftId = match[1];
+        const body = await request.json().catch(() => ({}));
+        const rawNote = body?.note;
+        if (rawNote !== undefined && typeof rawNote !== "string") {
+          return json({ ok: false, error: "Note must be text" }, 400);
+        }
+
+        const note = String(rawNote ?? "").trim();
+        if (note.length > MAX_ORDER_NOTE_LENGTH) {
+          return json({ ok: false, error: `Note is longer than ${MAX_ORDER_NOTE_LENGTH} characters` }, 400);
+        }
+
+        // The dashboard reads note_attributes['Note'] before draft.note, so keep
+        // both in step. A blank note clears the legacy attribute instead of
+        // leaving a stale value that would shadow the cleared draft note.
+        const draftRes = await shopifyRest(env, `/draft_orders/${draftId}.json`, "GET");
+        const draft = draftRes?.draft_order;
+        if (!draft) return json({ ok: false, error: "Draft not found" }, 404);
+
+        let noteAttributes = Array.isArray(draft.note_attributes) ? [...draft.note_attributes] : [];
+        noteAttributes = note
+          ? upsertNoteAttribute(noteAttributes, "Note", note)
+          : removeNoteAttribute(noteAttributes, "Note");
+
+        await shopifyRest(env, `/draft_orders/${draftId}.json`, "PUT", {
+          draft_order: {
+            id: Number(draftId),
+            note: note,
+            note_attributes: noteAttributes
+          }
+        });
+
+        return json({ ok: true, note }, 200);
+      } catch (e) {
+        console.error("Order note update error:", e);
         return json({ ok: false, error: e.message }, 500);
       }
     }
