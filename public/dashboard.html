@@ -1560,6 +1560,11 @@
       line-height: 1.45;
     }
 
+    .note-text {
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+    }
+
     .note-edit {
       margin-left: 8px;
       padding: 2px 10px;
@@ -3175,6 +3180,12 @@
               </div>
             </div>
 
+            <div class="inline-note">
+              <strong>📝 Note:</strong>
+              <span class="note-text">${order.note ? escapeHtml(order.note) : 'No note added'}</span>
+              <button class="btn note-edit" onclick="editOrderNote(${order.id})">${order.note ? 'Edit Note' : 'Add Note'}</button>
+            </div>
+
             <div class="items-list">
               ${order.items.map(item => {
                 const itemMetaTags = getItemMetaTags(item);
@@ -3197,13 +3208,6 @@
               }).join('')}
             </div>
 
-            ${order.note ? `
-              <div class="inline-note">
-                <strong>📝 Note:</strong> ${escapeHtml(order.note)}
-                <button class="btn note-edit" onclick="editOrderNote(${order.id})">Edit</button>
-              </div>
-            ` : ''}
-
             <div class="actions">
               <div class="action-row action-row-primary">
                 <button class="btn btn-success" onclick="markReady(${order.id})" ${readyDisabled}>
@@ -3218,9 +3222,6 @@
                 <div class="secondary-actions-panel">
                   <button class="btn btn-warning" onclick="emailCustomer(${order.id})" ${emailDisabled}>
                     ✉️ Email Customer
-                  </button>
-                  <button class="btn btn-secondary" onclick="editOrderNote(${order.id})">
-                    📝 ${order.note ? 'Edit Note' : 'Add Note'}
                   </button>
                   <button class="btn btn-secondary" onclick="viewInShopify(${order.id})">
                     🛍️ View in Shopify

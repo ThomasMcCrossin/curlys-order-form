@@ -16,7 +16,7 @@ export function createFixtures(run) {
   const product = { id: 'gid://shopify/Product/200', title: 'Verify Protein', vendor: 'Verify Supplier', status: 'ACTIVE', featuredMedia: null };
   const drafts = [
     { id: 301, name: '#V301', customer: customers[0], tags: 'order-request,pending', created_at: new Date(Date.now() - 16 * 86400000).toISOString(), note: 'Synthetic pending request', note_attributes: [], line_items: [{ title: 'Verify Custom Bottle', price: '8.00', quantity: 1, custom: true }] },
-    { id: 302, name: '#V302', customer: customers[1], tags: 'order-request,ready', created_at: new Date().toISOString(), note_attributes: [], line_items: [{ title: 'Verify Protein', variant_title: 'Chocolate', variant_id: 201, price: '12.50', quantity: 2 }] }
+    { id: 302, name: '#V302', customer: customers[1], tags: 'order-request,ready', created_at: new Date().toISOString(), note: 'Held for Nora\nKeep <sealed> & call on pickup', note_attributes: [], line_items: [{ title: 'Verify Protein', variant_title: 'Chocolate', variant_id: 201, price: '12.50', quantity: 2 }] }
   ];
   const messages = [];
   const persist = () => writeFileSync(join(run, 'fixture-state.json'), JSON.stringify({ customers, drafts, messages }, null, 2));
