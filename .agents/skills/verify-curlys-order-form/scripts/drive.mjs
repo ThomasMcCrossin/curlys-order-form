@@ -189,6 +189,25 @@ async function dashboard() {
     await expect(page.locator('[data-order-id="302"]')).toBeVisible();
     await snapshot('ready');
   });
+  await step('Saved ready-order note is readable above products without email, on desktop and phone', async () => {
+    const card = page.locator('[data-order-id="302"]');
+    const note = card.locator('.note-text');
+    await expect(card).toContainText('No email');
+    await expect(note).toHaveText('Held for Nora\nKeep <sealed> & call on pickup');
+    await expect(note).toHaveCSS('white-space', 'pre-wrap');
+    await expect(card.locator('.inline-note').getByRole('button', { name: 'Edit Note', exact: true })).toBeVisible();
+    assert.equal(await note.locator('*').count(), 0, 'Note text must not become HTML');
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await note.scrollIntoViewIfNeeded();
+      const noteBox = await card.locator('.inline-note').boundingBox();
+      const itemsBox = await card.locator('.items-list').boundingBox();
+      assert(noteBox.y + noteBox.height <= itemsBox.y, 'Note must precede products');
+      assert(noteBox.x >= 0 && noteBox.x + noteBox.width <= width, 'Note must fit the viewport');
+      await snapshot(`ready-note-${width}`);
+    }
+    await page.setViewportSize({ width: 1280, height: 900 });
+  });
   await step('Custom and All tabs; focus via metric and dropdown; sorting', async () => {
     await page.locator('[data-tab="custom"]').click();
     await expect(page.locator('[data-order-id="301"]')).toBeVisible();
@@ -223,6 +242,9 @@ async function dashboard() {
     await expect(page.locator('body')).toHaveClass(/density-compact/);
     await expect(page.locator('[data-order-id="301"]')).toBeVisible();
     await snapshot('compact-reloaded');
+    await page.locator('[data-tab="ready"]').click();
+    await expect(page.locator('[data-order-id="302"] .note-text')).toHaveText('Held for Nora\nKeep <sealed> & call on pickup');
+    await snapshot('compact-ready-note');
   });
 }
 

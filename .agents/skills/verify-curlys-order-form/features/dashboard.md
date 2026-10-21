@@ -11,6 +11,7 @@ search, select visible cards and choose a compact layout.
 - `dashboard-search`: name match, no matches and clearing update visible cards.
 - `dashboard-selection`: select a card and clear selection without a bulk mutation.
 - `dashboard-density`: Compact survives a reload in the disposable session.
+- `dashboard-notes`: the ready/no-email request shows its saved multiline note above products, escaped as text, at desktop/390px widths and after Compact reload.
 
 ## How to get to it (user POV)
 
@@ -23,7 +24,7 @@ search, select visible cards and choose a compact layout.
 ## Driving it with Playwright
 
 Preconditions: fresh launch, passing doctor, #V301 pending/critical/custom for
-Avery and newer #V302 ready/product for Nora. Start via trusted-network access.
+Avery and newer #V302 ready/product for Nora (no email; note `Held for Nora` followed by `Keep <sealed> & call on pickup` on a new line). Start via trusted-network access.
 
 Run `node "$S/drive.mjs" "$RUN" dashboard --headless`.
 
@@ -41,7 +42,10 @@ Run `node "$S/drive.mjs" "$RUN" dashboard --headless`.
   `.order-card.selected` count becomes zero.
 - **Density.** Click exact button `Compact`, reload; body retains
   `density-compact` and #V301 is visible again in the default Pending tab.
-- **Proof.** `steps.json`, `ready`, `all`, `empty-search`, and `compact-reloaded`
+- **Notes.** On Ready, assert the exact multiline note, literal HTML-sensitive characters,
+  preserved line breaks, direct Edit Note control, and placement before products at
+  1280px and 390px. After Compact reload, switch back to Ready and read it again.
+- **Proof.** `steps.json`, `ready`, `ready-note-1280`, `ready-note-390`, `compact-ready-note`, `all`, `empty-search`, and `compact-reloaded`
   screenshot/ARIA pairs show state transitions. The final audit requires no
   non-GET app request, added draft or captured message.
 

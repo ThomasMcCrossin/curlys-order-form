@@ -32,7 +32,8 @@ A complete order management system for Shopify with customer/product search, sta
 - Filter by custom items or status
 - Search by customer/order
 - Mark items as arrived
-- Add or edit a staff note on an existing request
+- Read saved notes directly below customer details, above products (including Ready requests without email)
+- Add or edit a staff note directly in that note section; multiline notes retain line breaks
 - Email customers
 - Direct Shopify links
 
