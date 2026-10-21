@@ -15,6 +15,12 @@ and the [change record](changes/2026-08-09-doctrine-conversion.md).
 
 ## Technical work — issue status
 
+Dashboard note presentation is tracked in [#31](https://github.com/ThomasMcCrossin/curlys-order-form/issues/31)
+and [its mission](missions/issue-31-visible-notes.md): notes sit below customer details,
+above products, with direct Add/Edit controls and preserved line breaks. Ready/no-email,
+phone-width and compact-density viewing are covered by the isolated dashboard recipe.
+This does not certify the live note-write route from #28.
+
 | Issue | Mission | Scope | Route |
 | --- | --- | --- | --- |
 | [#6](https://github.com/ThomasMcCrossin/curlys-order-form/issues/6) — **CLOSED, done and deployed** | [Product-search relevance and UI/UX audit](missions/issue-6-search-relevance-ui-audit.md) | Audit responsive search UX and rank title matches before vendor and broader metadata matches. | `multi-surface-audit` / parallel specialists, then bounded implementation — **complete**: candidate merged to `main` by PR #7 at merge commit `a699a5669fe1ed768b851b41da9943e380f61580` (2026-09-26), merge-triggered Cloudflare Pages and Workers checks passed, post-merge live readback confirmed title-first ordering, and issue #6 is CLOSED |
