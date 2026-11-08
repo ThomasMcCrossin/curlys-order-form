@@ -76,7 +76,7 @@ code changes; no product-code change is required for this launch path.
 
 | Issue | Mission | Scope | Readiness |
 | --- | --- | --- | --- |
-| [#5](https://github.com/ThomasMcCrossin/curlys-order-form/issues/5) | [Curlys Ops integration discovery](missions/issue-5-curlys-ops-integration-discovery.md) | Review target-side workflow and define an evidence-backed integration boundary; see the [concept scaffold](integration-curlys-ops.md). | Blocked on authorized target-side review and operator decisions; no runtime work authorized. |
+| [#5](https://github.com/ThomasMcCrossin/curlys-order-form/issues/5) | [Curlys Ops integration discovery](missions/issue-5-curlys-ops-integration-discovery.md) | Current owning Ops captain's source-only packet recorded 2026-10-07 in [target-aware discovery](integration-curlys-ops.md); sales, procurement and receiving are separate lifecycles, not an existing request feed. | Source review available; owner chose full captured request/customer visibility, including names/contact/custom notes (2026-10-07). Exact schema/auth/identity/replay contract still required before implementation. Retention premise challenged: no horizon or repeat question due; expiry stays out of scope. No runtime/live connectivity authorized. Historical source-delivery hold superseded only for current-main documentation integration by overnight cleanup #676 (2026-11-08); see the mission's scoped receipt. |
 
 ## Done or evidenced in the legacy record
 
