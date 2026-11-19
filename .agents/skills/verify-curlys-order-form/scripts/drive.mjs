@@ -78,7 +78,7 @@ async function contacts() {
   });
   await step('Manual entry has the same email/refused-phone gates', async () => {
     await page.getByRole('button', { name: 'Change', exact: true }).click();
-    await page.getByRole('button', { name: 'Or enter customer details manually', exact: true }).click();
+    await page.getByRole('button', { name: 'Enter customer details', exact: true }).click();
     await page.getByRole('button', { name: 'Create Draft Order', exact: true }).click();
     await expect(page.locator('#manualEmailErrorNote')).toBeVisible();
     await page.locator('#manualEmailRefusedCheckbox').check();
@@ -156,7 +156,7 @@ async function submit() {
     await page.getByRole('button', { name: 'Create Another Order', exact: true }).click();
     await expect(page.locator('#emptyLineItems')).toBeVisible();
     await expect(page.locator('#customerSearch')).toBeFocused();
-    await page.getByRole('button', { name: 'Or enter customer details manually', exact: true }).click();
+    await page.getByRole('button', { name: 'Enter customer details', exact: true }).click();
     await page.getByLabel('First Name', { exact: true }).fill('Morgan');
     await page.getByLabel('Last Name', { exact: true }).fill('Verify');
     await page.getByLabel('Email *', { exact: true }).fill('morgan@example.invalid');

@@ -15,7 +15,7 @@ line items, receive a reference, reset the form and find the request in the dash
 ## How to get to it (user POV)
 
 - Open `/`, search/select a customer, then add items and choose **Create Draft Order**.
-- Alternatively choose **Or enter customer details manually** before submitting.
+- Alternatively choose **Enter customer details** before submitting.
 - From success choose **Create Another Order** to start a second request.
 - Open `/dashboard.html` directly and search by the displayed draft reference.
 
@@ -39,7 +39,7 @@ Run `node "$S/drive.mjs" "$RUN" submit --headless`.
   and one captured notification addressed to `nora@example.invalid` containing
   the item. Capture `selected-success`.
 - **Reset/manual entry.** Click `Create Another Order`; the empty item list and
-  focused customer search return. Click `Or enter customer details manually`.
+  focused customer search return. Click `Enter customer details`.
   Fill First Name `Morgan`, Last Name `Verify`, Email `morgan@example.invalid`;
   add the same two custom bottles. Submit yields `#V403`, four total drafts,
   and a second captured notification to Morgan. Capture `manual-success`.
