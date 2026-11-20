@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Customer Order Form</title>
+  <title>Customer Order Form | Curly's Sports &amp; Supplements</title>
   <style>
     /* Design System */
     :root {
-      --color-primary: #0052CC;
-      --color-primary-hover: #0747A6;
+      --color-primary: oklch(18% 0 none);
+      --color-primary-hover: oklch(32% 0 none);
       --color-success: #00875A;
       --color-error: #DE350B;
       --color-background: #F4F5F7;
       --color-surface: #FFFFFF;
       --color-text: #172B4D;
       --color-text-secondary: #6B778C;
-      --color-border: #DFE1E6;
+      --color-border: oklch(70% 0 none);
       --radius-base: 8px;
       --radius-sm: 4px;
       --space-xs: 4px;
@@ -45,6 +45,27 @@
       max-width: 900px;
       margin: 0 auto;
       padding-bottom: 100px;
+    }
+
+    .brand-header {
+      background: oklch(18% 0 none);
+      color: oklch(100% 0 none);
+      border-block-end: 4px solid oklch(78.9% 0.148 69.6);
+      border-radius: var(--radius-base);
+      padding: var(--space-lg);
+      margin-block-end: var(--space-lg);
+    }
+
+    .brand-name {
+      color: oklch(78.9% 0.148 69.6);
+      font-size: 1rem;
+      font-weight: 700;
+      margin-block-end: var(--space-sm);
+    }
+
+    .brand-header h1 {
+      color: inherit;
+      margin-block-end: 0;
     }
 
     h1 {
@@ -81,6 +102,10 @@
       font-size: 14px;
     }
 
+    button, input, textarea, select {
+      font-family: inherit;
+    }
+
     input[type="text"],
     input[type="email"],
     input[type="tel"],
@@ -90,14 +115,18 @@
       padding: 10px 12px;
       border: 2px solid var(--color-border);
       border-radius: var(--radius-sm);
-      font-size: 14px;
+      font-size: 16px;
       transition: border-color 0.2s;
       font-family: inherit;
     }
 
-    input:focus,
-    textarea:focus {
-      outline: none;
+    :focus-visible {
+      outline: 3px solid oklch(65% 0.16 58);
+      outline-offset: 2px;
+    }
+
+    input:focus-visible,
+    textarea:focus-visible {
       border-color: var(--color-primary);
     }
 
@@ -292,6 +321,15 @@
     /* Manual Entry Toggle */
     .manual-entry-toggle {
       margin-bottom: var(--space-md);
+    }
+
+    .manual-entry-toggle .btn {
+      min-block-size: 48px;
+      border-color: var(--color-primary);
+    }
+
+    .manual-entry-toggle .btn:active {
+      background: oklch(90% 0 none);
     }
 
     .manual-fields {
@@ -659,8 +697,7 @@
       font-size: 14px;
     }
 
-    .login-box input[type="password"]:focus {
-      outline: none;
+    .login-box input[type="password"]:focus-visible {
       border-color: var(--color-primary);
     }
 
@@ -715,7 +752,10 @@
   </div>
 
   <div id="mainContent" class="container" style="display: none;">
-    <h1>Customer Order Form</h1>
+    <header class="brand-header">
+      <p class="brand-name">Curly's Sports &amp; Supplements</p>
+      <h1>Customer order form</h1>
+    </header>
 
     <!-- Success Message -->
     <div id="successMessage" class="message message-success">
@@ -806,7 +846,7 @@
         </div>
 
         <div class="manual-entry-toggle">
-          <button class="btn btn-link" onclick="toggleManualEntry()">Or enter customer details manually</button>
+          <button class="btn btn-secondary" type="button" onclick="toggleManualEntry()">Enter customer details</button>
         </div>
 
         <div id="manualCustomerFields" class="manual-fields">

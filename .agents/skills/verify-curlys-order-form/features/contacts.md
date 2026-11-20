@@ -16,7 +16,7 @@ and accept refusal only when a usable phone number is available.
 - Open `/`, use **Search Customer**, then choose the autocomplete result.
 - Choose **Change** on the selected card to search again.
 - Choose **Add email**, or **Create Draft Order** while email is missing.
-- Choose **Or enter customer details manually** below the search field.
+- Choose **Enter customer details** below the search field.
 
 ## Driving it with Playwright
 
@@ -36,7 +36,7 @@ Run `node "$S/drive.mjs" "$RUN" contacts --headless`.
 - **Refuse.** Check `#emailRefusedCheckbox`, submit, and require a visible
   `#phoneErrorNote` containing `required`. Fill label `Customer Phone Number`
   with `9025550101`; submission now reaches `Please add at least one item to the order`.
-- **Manual path.** Change customer, click `Or enter customer details manually`,
+- **Manual path.** Change customer, click `Enter customer details`,
   then submit. Require `#manualEmailErrorNote`. Check
   `#manualEmailRefusedCheckbox`; submit and require `#manualPhoneErrorNote`.
   Fill exact label `Phone` with `9025550102`; submit reaches the no-items error.
